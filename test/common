@@ -1,0 +1,51 @@
+int fputc(char s, int f)
+{
+/*	asm("mov_eax, %4"
+		"lea_ebx,[esp+DWORD] %4"
+		"mov_ebx,[ebx]"
+		"lea_ecx,[esp+DWORD] %8"
+		"mov_edx, %1"
+		"int !0x80");*/
+}
+
+int fputs(char* s, int f)
+{
+	while(0 != s[0])
+	{
+		fputc(s[0], f);
+		s = s + 1;
+	}
+}
+
+int fputint(int num) {
+    char hundreds = num / 100 + 48;
+	char tens = (num - num / 100 * 100) / 10 + 48;
+	char ones = (num - num / 10 * 10) + 48;
+	if (hundreds != 48) {
+		fputc(hundreds, 1);
+		fputc(tens, 1);
+		fputc(ones, 1);
+	} else if (tens != 48) {
+		fputc(tens, 1);
+		fputc(ones, 1);
+	} else {
+		fputc(ones, 1);
+	}
+}
+
+int _assert_failed(int expected, int actual, char *code) {
+	if (expected == actual) {
+		fputs(code, 1);
+		fputs(" => ", 1);
+		fputint(actual);
+		fputc(10, 1);
+	} else {
+		fputs(code, 1);
+		fputs(" => ", 1);
+		fputint(expected);
+		fputs(" expected but got ", 1);
+		fputint(actual);
+		fputc(10, 1);
+		exit(1);
+	}
+}

@@ -33,7 +33,7 @@ int startswith(char *p, char *q) {
 // Get slice
 char *string_slice(char *original, char *end) {
 	int diff = end - original;
-	char *slice = calloc(strlen(original), sizeof(char));
+	char *slice = calloc(strlen(original) + 1, sizeof(char));
 	strcpy(slice, original);
 	slice[diff] = '\0';
 	return slice;

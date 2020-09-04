@@ -148,7 +148,7 @@ char *get_ident(Token *tok) {
 	if (tok->kind != TK_IDENT) {
 		error_tok(tok, "expected an identifier");
 	}
-	char *new = calloc(tok->len, sizeof(char));
+	char *new = calloc(tok->len + 1, sizeof(char));
 	strncpy(new, tok->loc, tok->len);
 	return new;
 }
@@ -283,6 +283,7 @@ int is_typename(Token *tok) {
 }
 
 // stmt = "return" expr ";"
+//      | "_TEST_ASSERT" "(" expr "," expr ")" ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
@@ -293,6 +294,31 @@ Node *stmt(Token **rest, Token *tok) {
 		Node *node = new_node(ND_RETURN, tok);
 		node->lhs = expr(&tok, tok->next);
 		*rest = skip(tok, ";");
+		return node;
+	}
+
+	if (equal(tok, "_TEST_ASSERT")) {
+		Token *orig_tok = tok;
+		tok = skip(tok->next, "(");
+		Node *expected = expr(&tok, tok);
+		Node *eval = expr(&tok, tok->next);
+
+		char *code = calloc(eval->tok->len + 1, sizeof(char));
+		strncpy(code, eval->tok->loc, eval->tok->len);
+		Obj *code_str = new_string_literal(code, array_of(ty_char, eval->tok->len + 1));
+		Node *code_node = new_var_node(code_str, orig_tok);
+
+		Node *node = new_node(ND_IF, orig_tok);
+		node->cond = new_binary(ND_NE, expected, eval, orig_tok);
+		Node *function = new_node(ND_FUNCALL, orig_tok);
+		function->funcname = "_assert_failed";
+		function->args = expected;
+		function->args->next = eval;
+		function->args->next->next = code_node;
+		node->then = new_node(ND_EXPR_STMT, tok);
+		node->then->lhs = function;
+
+		*rest = skip(tok->next, ";");
 		return node;
 	}
 
@@ -634,7 +660,7 @@ Node *funcall(Token **rest, Token *tok) {
 	*rest = skip(tok, ")");
 
 	Node *node = new_node(ND_FUNCALL, start);
-	node->funcname = calloc(start->len, sizeof(char));
+	node->funcname = calloc(start->len + 1, sizeof(char));
 	strncpy(node->funcname, start->loc, start->len);
 	node->args = head->next;
 	return node;

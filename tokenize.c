@@ -147,7 +147,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "while") ||
 			equal(tok, "int") ||
 			equal(tok, "sizeof") ||
-			equal(tok, "char")) {
+			equal(tok, "char") ||
+			equal(tok, "_TEST_ASSERT")) {
 		return TRUE;
 	}
 	return FALSE;

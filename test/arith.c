@@ -1,0 +1,33 @@
+int main() {
+  _TEST_ASSERT(0, 0);
+  _TEST_ASSERT(42, 42);
+  _TEST_ASSERT(21, 5+20-4);
+  _TEST_ASSERT(41,  12 + 34 - 5 );
+  _TEST_ASSERT(47, 5+6*7);
+  _TEST_ASSERT(15, 5*(9-6));
+  _TEST_ASSERT(4, (3+5)/2);
+  _TEST_ASSERT(10, -10+20);
+  _TEST_ASSERT(10, - -10);
+  _TEST_ASSERT(10, - - +10);
+
+  _TEST_ASSERT(0, 0==1);
+  _TEST_ASSERT(1, 42==42);
+  _TEST_ASSERT(1, 0!=1);
+  _TEST_ASSERT(0, 42!=42);
+
+  _TEST_ASSERT(1, 0<1);
+  _TEST_ASSERT(0, 1<1);
+  _TEST_ASSERT(0, 2<1);
+  _TEST_ASSERT(1, 0<=1);
+  _TEST_ASSERT(1, 1<=1);
+  _TEST_ASSERT(0, 2<=1);
+
+  _TEST_ASSERT(1, 1>0);
+  _TEST_ASSERT(0, 1>1);
+  _TEST_ASSERT(0, 1>2);
+  _TEST_ASSERT(1, 1>=0);
+  _TEST_ASSERT(1, 1>=1);
+  _TEST_ASSERT(0, 1>=2);
+
+  return 0;
+}

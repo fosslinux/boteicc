@@ -196,6 +196,7 @@ void gen_expr(Node *node) {
 		return;
 	} else if (node->kind == ND_DIV) {
 		pop("ebx");
+		emit("cdq");
 		emit("idiv_ebx");
 		return;
 	} else if (node->kind == ND_EQ || node->kind == ND_NE ||
@@ -318,6 +319,8 @@ void emit_data(Obj *prog) {
 }
 
 void emit_text(Obj *prog) {
+	emit(":ELF_text");
+
 	Obj *fn;
 	int i;
 	Obj *var;

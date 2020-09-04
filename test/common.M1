@@ -1,0 +1,399 @@
+:ELF_data
+:GLOBAL__3
+!32 !101 !120 !112 !101 !99 !116 !101 !100 !32 !98 !117 !116 !32 !103 !111 !116 !32 !0 
+:GLOBAL__2
+!32 !61 !62 !32 !0 
+:GLOBAL__1
+!32 !61 !62 !32 !0 
+:FUNCTION__assert_failed
+push_ebp
+mov_ebp,esp
+sub_esp, %32
+lea_eax,[ebp+DWORD] %8
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-8
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %12
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-16
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %16
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-24
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %-16
+mov_eax,[eax]
+push_eax
+lea_eax,[ebp+DWORD] %-8
+mov_eax,[eax]
+mov_ebx,eax
+pop_eax
+cmp
+sete_al
+movzx_eax,al
+mov_ebx, %0
+cmp
+je %IF_else__2
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-24
+mov_eax,[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputs
+add_esp, %8
+mov_eax, %1
+push_eax
+mov_eax, &GLOBAL__1
+push_eax
+mov_eax, %0
+call %FUNCTION_fputs
+add_esp, %8
+lea_eax,[ebp+DWORD] %-16
+mov_eax,[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputint
+add_esp, %4
+mov_eax, %1
+push_eax
+mov_eax, %10
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+jmp %IF_end__2
+:IF_else__2
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-24
+mov_eax,[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputs
+add_esp, %8
+mov_eax, %1
+push_eax
+mov_eax, &GLOBAL__2
+push_eax
+mov_eax, %0
+call %FUNCTION_fputs
+add_esp, %8
+lea_eax,[ebp+DWORD] %-8
+mov_eax,[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputint
+add_esp, %4
+mov_eax, %1
+push_eax
+mov_eax, &GLOBAL__3
+push_eax
+mov_eax, %0
+call %FUNCTION_fputs
+add_esp, %8
+lea_eax,[ebp+DWORD] %-16
+mov_eax,[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputint
+add_esp, %4
+mov_eax, %1
+push_eax
+mov_eax, %10
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+mov_eax, %1
+push_eax
+mov_eax, %0
+call %FUNCTION_exit
+add_esp, %4
+:IF_end__2
+:BUILTIN_return__assert_failed
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_fputint
+push_ebp
+mov_ebp,esp
+sub_esp, %16
+lea_eax,[ebp+DWORD] %8
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-11
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %-3
+push_eax
+mov_eax, %48
+push_eax
+mov_eax, %100
+push_eax
+lea_eax,[ebp+DWORD] %-11
+mov_eax,[eax]
+pop_ebx
+cdq
+idiv_ebx
+pop_ebx
+add_eax,ebx
+pop_ebx
+mov_[ebx],al
+lea_eax,[ebp+DWORD] %-2
+push_eax
+mov_eax, %48
+push_eax
+mov_eax, %10
+push_eax
+mov_eax, %100
+push_eax
+mov_eax, %100
+push_eax
+lea_eax,[ebp+DWORD] %-11
+mov_eax,[eax]
+pop_ebx
+cdq
+idiv_ebx
+pop_ebx
+imul_ebx
+push_eax
+lea_eax,[ebp+DWORD] %-11
+mov_eax,[eax]
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+pop_ebx
+cdq
+idiv_ebx
+pop_ebx
+add_eax,ebx
+pop_ebx
+mov_[ebx],al
+lea_eax,[ebp+DWORD] %-1
+push_eax
+mov_eax, %48
+push_eax
+mov_eax, %10
+push_eax
+mov_eax, %10
+push_eax
+lea_eax,[ebp+DWORD] %-11
+mov_eax,[eax]
+pop_ebx
+cdq
+idiv_ebx
+pop_ebx
+imul_ebx
+push_eax
+lea_eax,[ebp+DWORD] %-11
+mov_eax,[eax]
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+pop_ebx
+add_eax,ebx
+pop_ebx
+mov_[ebx],al
+mov_eax, %48
+push_eax
+lea_eax,[ebp+DWORD] %-3
+movsx_eax,BYTE_PTR_[eax]
+mov_ebx,eax
+pop_eax
+cmp
+setne_al
+movzx_eax,al
+mov_ebx, %0
+cmp
+je %IF_else__3
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-3
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-2
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-1
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+jmp %IF_end__3
+:IF_else__3
+mov_eax, %48
+push_eax
+lea_eax,[ebp+DWORD] %-2
+movsx_eax,BYTE_PTR_[eax]
+mov_ebx,eax
+pop_eax
+cmp
+setne_al
+movzx_eax,al
+mov_ebx, %0
+cmp
+je %IF_else__4
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-2
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-1
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+jmp %IF_end__4
+:IF_else__4
+mov_eax, %1
+push_eax
+lea_eax,[ebp+DWORD] %-1
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+:IF_end__4
+:IF_end__3
+:BUILTIN_return_fputint
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_fputs
+push_ebp
+mov_ebp,esp
+sub_esp, %16
+lea_eax,[ebp+DWORD] %8
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-8
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %12
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-16
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+:FOR_begin__5
+mov_eax, %1
+push_eax
+mov_eax, %0
+pop_ebx
+imul_ebx
+push_eax
+lea_eax,[ebp+DWORD] %-8
+mov_eax,[eax]
+pop_ebx
+add_eax,ebx
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+mov_ebx,eax
+pop_eax
+cmp
+setne_al
+movzx_eax,al
+mov_ebx, %0
+cmp
+je %FOR_end__5
+lea_eax,[ebp+DWORD] %-16
+mov_eax,[eax]
+push_eax
+mov_eax, %1
+push_eax
+mov_eax, %0
+pop_ebx
+imul_ebx
+push_eax
+lea_eax,[ebp+DWORD] %-8
+mov_eax,[eax]
+pop_ebx
+add_eax,ebx
+movsx_eax,BYTE_PTR_[eax]
+push_eax
+mov_eax, %0
+call %FUNCTION_fputc
+add_esp, %8
+lea_eax,[ebp+DWORD] %-8
+push_eax
+mov_eax, %1
+push_eax
+mov_eax, %1
+pop_ebx
+imul_ebx
+push_eax
+lea_eax,[ebp+DWORD] %-8
+mov_eax,[eax]
+pop_ebx
+add_eax,ebx
+pop_ebx
+mov_[ebx],eax
+jmp %FOR_begin__5
+:FOR_end__5
+:BUILTIN_return_fputs
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_fputc
+push_ebp
+mov_ebp,esp
+sub_esp, %16
+lea_eax,[ebp+DWORD] %8
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-1
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],al
+lea_eax,[ebp+DWORD] %12
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-9
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %-9
+mov_ebx,eax
+mov_ebx,[ebx]
+lea_eax,[ebp+DWORD] %-1
+mov_ecx,eax
+mov_edx, %1
+mov_eax, %4
+int !0x80
+:BUILTIN_return_fputc
+mov_esp,ebp
+pop_ebp
+ret
