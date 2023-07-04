@@ -44,11 +44,31 @@ struct Token {
 };
 typedef struct Token Token;
 
+// Input string
+char *current_input;
+
 // Reports an error and exit.
 void error(char *fmt) {
 	fputs(fmt, stderr);
 	fputc('\n', stderr);
 	exit(1);
+}
+
+// Reports an error location and exists.
+void error_at(char *loc, char *fmt) {
+	int pos = loc - current_input;
+	fputs(current_input, stderr);
+	fputc('\n', stderr);
+	int i;
+	for (i = 0; i < pos; i += 1) {
+		fputc(' ', stderr);
+	}
+	fputs("^ ", stderr);
+	error(fmt);
+}
+
+void error_tok(Token *tok, char *fmt) {
+	error_at(tok->loc, fmt);
 }
 
 // Consumes the current tyoken if it matches `s`??
@@ -59,7 +79,7 @@ int equal(Token *tok, char *op) {
 // Ensure that the current token is `s`.
 Token *skip(Token *tok, char *s) {
 	if (!equal(tok, s)) {
-		error(strcat("expected ", s));
+		error_tok(tok, strcat("expected ", s));
 	}
 	return tok->next;
 }
@@ -67,7 +87,7 @@ Token *skip(Token *tok, char *s) {
 // Ensure current token is TK_NUM.
 int get_number(Token *tok) {
 	if (tok->kind != TK_NUM) {
-		error("expected a number");
+		error_tok(tok, "expected a number");
 	}
 	return tok->val;
 }
@@ -82,7 +102,8 @@ Token *new_token(int kind, char *start, char *end) {
 }
 
 // Tokenize `p` and return new tokens.
-Token *tokenize(char *p) {
+Token *tokenize(void) {
+	char *p = current_input;
 	Token *head = calloc(1, sizeof(Token));
 	Token *cur = head;
 
@@ -113,7 +134,7 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		error("invalid token");
+		error_at(p, "invalid token");
 	}
 
 	cur->next = new_token(TK_EOF, p, p);
@@ -127,7 +148,8 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	Token *tok = tokenize(argv[1]);
+	current_input = argv[1];
+	Token *tok = tokenize();
 	fputs("int main() { return ", stdout);
 
 	// First token is a number
