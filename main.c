@@ -178,6 +178,7 @@ Token *tokenize(void) {
 #define ND_MUL 2 // *
 #define ND_DIV 3 // /
 #define ND_NUM 4 // Integer
+#define ND_NEG 5 // unary -
 
 // AST node type
 struct Node {
@@ -201,6 +202,12 @@ Node *new_binary(int kind, Node *lhs, Node *rhs) {
 	return node;
 }
 
+Node *new_unary(int kind, Node *expr) {
+	Node *node = new_node(kind);
+	node->lhs = expr;
+	return node;
+}
+
 Node *new_num(int val) {
 	Node *node = new_node(ND_NUM);
 	node->val = val;
@@ -210,6 +217,7 @@ Node *new_num(int val) {
 Node *expr(Token **rest, Token *tok);
 Node *mul(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
+Node *unary(Token **rest, Token *tok);
 
 // expr = mul ("+" mul | "-" mul)*
 Node *expr(Token **rest, Token *tok) {
@@ -231,24 +239,38 @@ Node *expr(Token **rest, Token *tok) {
 	}
 }
 
-// mul = primary ("*" primary | "/" primary)*
+// mul = unary ("*" unary | "/" unary)*
 Node *mul(Token **rest, Token *tok) {
-	Node *node = primary(&tok, tok);
+	Node *node = unary(&tok, tok);
 
 	while (1) {
 		if (equal(tok, "*")) {
-			node = new_binary(ND_MUL, node, primary(&tok, tok->next));
+			node = new_binary(ND_MUL, node, unary(&tok, tok->next));
 			continue;
 		}
 
 		if (equal(tok, "/")) {
-			node = new_binary(ND_DIV, node, primary(&tok, tok->next));
+			node = new_binary(ND_DIV, node, unary(&tok, tok->next));
 			continue;
 		}
 
 		rest[0] = tok;
 		return node;
 	}
+}
+
+// unary = ("+" | "-") unary
+//       | primary
+Node *unary(Token **rest, Token *tok) {
+	if (equal(tok, "+")) {
+		return unary(rest, tok->next);
+	}
+
+	if (equal(tok, "-")) {
+		return new_unary(ND_NEG, unary(rest, tok->next));
+	}
+
+	return primary(rest, tok);
 }
 
 // primary = "(" expr ")" | num
@@ -278,7 +300,7 @@ int function = 1;
 
 int function_def(char *str) {
 	fputs("int f", stdout);
-	fputs(int2str(function, 10, FALSE), stdout);
+	fputs(uint2str(function), stdout);
 	fputs("() { ", stdout);
 	fputs(str, stdout);
 	fputs("}\n", stdout);
@@ -299,6 +321,7 @@ char *operation(int lhs, int rhs, char *symbol) {
 }
 
 int gen_expr(Node *node) {
+	// Sideless
 	if (node->kind == ND_NUM) {
 		char *full = calloc(MAX_STRING, sizeof(char));
 		strcpy(full, "return ");
@@ -307,8 +330,20 @@ int gen_expr(Node *node) {
 		return function_def(full);
 	}
 
-	int rhs = gen_expr(node->rhs);
+	// Unary
 	int lhs = gen_expr(node->lhs);
+
+	if (node->kind == ND_NEG) {
+		char *full = calloc(MAX_STRING, sizeof(char));
+		strcpy(full, "return -f");
+		strcat(full, uint2str(lhs));
+		strcat(full, "(); ");
+		return function_def(full);
+	}
+
+	// Binary
+	int rhs = gen_expr(node->rhs);
+
 	if (node->kind == ND_ADD) {
 		return function_def(operation(lhs, rhs, "+"));
 	} else if (node->kind == ND_SUB) {
