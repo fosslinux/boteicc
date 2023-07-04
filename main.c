@@ -12,9 +12,28 @@
 #define TK_NUM 1
 #define TK_EOF 2
 
+//
+// HELPER FUNCTIONS
+//
+
 // isadigit
 int isadigit(char c) {
 	return (c >= 48 && c <= 57);
+}
+
+// isagraph
+int isagraph(char c) {
+	return (c >= 32 && c <= 126);
+}
+
+// isaalpha
+int isaalpha(char c) {
+	return (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+}
+
+// isapunct
+int isapunct(char c) {
+	return (isagraph(c) && !(isaalpha(c) || isadigit(c)));
 }
 
 // Get slice
@@ -33,6 +52,14 @@ char *integer_end(char *s) {
 	}
 	return s;
 }
+
+char *uint2str(int i) {
+	return int2str(i, 10, FALSE);
+}
+
+//
+// TOKENIZER
+//
 
 // Token type
 struct Token {
@@ -126,8 +153,8 @@ Token *tokenize(void) {
 			continue;
 		}
 
-		// Punctuator
-		if (*p == '+' || *p == '-') {
+		// Punctuators
+		if (isapunct(*p)) {
 			cur->next = new_token(TK_PUNCT, p, p + 1);
 			cur = cur->next;
 			p += 1;
@@ -142,6 +169,159 @@ Token *tokenize(void) {
 	return head->next;
 }
 
+//
+// PARSER
+//
+
+#define ND_ADD 0 // +
+#define ND_SUB 1 // -
+#define ND_MUL 2 // *
+#define ND_DIV 3 // /
+#define ND_NUM 4 // Integer
+
+// AST node type
+struct Node {
+	int kind;         // Node kind
+	struct Node *lhs; // Left-hand side
+	struct Node *rhs; // Right-hand side
+	int val;          // Used if kind == ND_NUM
+};
+typedef struct Node Node;
+
+Node *new_node(int kind) {
+	Node *node = calloc(1, sizeof(Node));
+	node->kind = kind;
+	return node;
+}
+
+Node *new_binary(int kind, Node *lhs, Node *rhs) {
+	Node *node = new_node(kind);
+	node->lhs = lhs;
+	node->rhs = rhs;
+	return node;
+}
+
+Node *new_num(int val) {
+	Node *node = new_node(ND_NUM);
+	node->val = val;
+	return node;
+}
+
+Node *expr(Token **rest, Token *tok);
+Node *mul(Token **rest, Token *tok);
+Node *primary(Token **rest, Token *tok);
+
+// expr = mul ("+" mul | "-" mul)*
+Node *expr(Token **rest, Token *tok) {
+	Node *node = mul(&tok, tok);
+
+	while (1) {
+		if (equal(tok, "+")) {
+			node = new_binary(ND_ADD, node, mul(&tok, tok->next));
+			continue;
+		}
+
+		if (equal(tok, "-")) {
+			node = new_binary(ND_SUB, node, mul(&tok, tok->next));
+			continue;
+		}
+
+		rest[0] = tok;
+		return node;
+	}
+}
+
+// mul = primary ("*" primary | "/" primary)*
+Node *mul(Token **rest, Token *tok) {
+	Node *node = primary(&tok, tok);
+
+	while (1) {
+		if (equal(tok, "*")) {
+			node = new_binary(ND_MUL, node, primary(&tok, tok->next));
+			continue;
+		}
+
+		if (equal(tok, "/")) {
+			node = new_binary(ND_DIV, node, primary(&tok, tok->next));
+			continue;
+		}
+
+		rest[0] = tok;
+		return node;
+	}
+}
+
+// primary = "(" expr ")" | num
+Node *primary(Token **rest, Token *tok) {
+	if (equal(tok, "(")) {
+		Node *node = expr(&tok, tok->next);
+		rest[0] = skip(tok, ")");
+		return node;
+	}
+
+	if (tok->kind == TK_NUM) {
+		Node *node = new_num(tok->val);
+		rest[0] = tok->next;
+		return node;
+	}
+
+	error_tok(tok, "expected an expression");
+}
+
+//
+// Code generator
+//
+
+// in a way, simulates x86_64
+
+int function = 1;
+
+int function_def(char *str) {
+	fputs("int f", stdout);
+	fputs(int2str(function, 10, FALSE), stdout);
+	fputs("() { ", stdout);
+	fputs(str, stdout);
+	fputs("}\n", stdout);
+	function += 1;
+	return function - 1;
+}
+
+char *operation(int lhs, int rhs, char *symbol) {
+	char *full = calloc(MAX_STRING, sizeof(char));
+	strcpy(full, "return f");
+	strcat(full, uint2str(lhs));
+	strcat(full, "()");
+	strcat(full, symbol);
+	strcat(full, "f");
+	strcat(full, uint2str(rhs));
+	strcat(full, "(); ");
+	return full;
+}
+
+int gen_expr(Node *node) {
+	if (node->kind == ND_NUM) {
+		char *full = calloc(MAX_STRING, sizeof(char));
+		strcpy(full, "return ");
+		strcat(full, uint2str(node->val));
+		strcat(full, "; ");
+		return function_def(full);
+	}
+
+	int rhs = gen_expr(node->rhs);
+	int lhs = gen_expr(node->lhs);
+	if (node->kind == ND_ADD) {
+		return function_def(operation(lhs, rhs, "+"));
+	} else if (node->kind == ND_SUB) {
+		return function_def(operation(lhs, rhs, "-"));
+	} else if (node->kind == ND_MUL) {
+		return function_def(operation(lhs, rhs, "*"));
+	} else if (node->kind == ND_DIV) {
+		return function_def(operation(lhs, rhs, "/"));
+	}
+
+	error("invalid expression");
+}
+
 int main(int argc, char **argv) {
 	if (argc != 2) {
 		fputs("invalid number of arguments\n", stderr);
@@ -150,27 +330,17 @@ int main(int argc, char **argv) {
 
 	current_input = argv[1];
 	Token *tok = tokenize();
-	fputs("int main() { return ", stdout);
+	Node *node = expr(&tok, tok);
 
-	// First token is a number
-	fputs(int2str(get_number(tok), 10, FALSE), stdout);
-	tok = tok->next;
-
-	// ... followed by either `+ <number>` or `- <number>`.
-	while (tok->kind != TK_EOF) {
-		if (equal(tok, "+")) {
-			fputc('+', stdout);
-			fputs(int2str(get_number(tok->next), 10, FALSE), stdout);
-			tok = tok->next->next;
-			continue;
-		}
-
-		tok = skip(tok, "-");
-		fputc('-', stdout);
-		fputs(int2str(get_number(tok), 10, FALSE), stdout);
-		tok = tok->next;
+	if (tok->kind != TK_EOF) {
+		error_tok(tok, "extra token");
 	}
 
-	fputs("; }\n", stdout);
+	// Traverse the AST.
+	int main = gen_expr(node);
+	fputs("int main() { return f", stdout);
+	fputs(uint2str(main), stdout);
+	fputs("(); }\n", stdout);
+
 	return 0;
 }
