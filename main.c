@@ -36,6 +36,11 @@ int isapunct(char c) {
 	return (isagraph(c) && !(isaalpha(c) || isadigit(c)));
 }
 
+// startswith
+int startswith(char *p, char *q) {
+	return strncmp(p, q, strlen(q)) == 0;
+}
+
 // Get slice
 char *string_slice(char *original, char *end) {
 	int diff = end - original;
@@ -128,6 +133,20 @@ Token *new_token(int kind, char *start, char *end) {
 	return tok;
 }
 
+// Read a punctuator toekn from p and return its length.
+int read_punct(char *p) {
+	if (startswith(p, "==") || startswith(p, "!=") ||
+		startswith(p, "<=") || startswith(p, ">=")) {
+		return 2;
+	}
+
+	if (isapunct(*p)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 // Tokenize `p` and return new tokens.
 Token *tokenize(void) {
 	char *p = current_input;
@@ -135,6 +154,7 @@ Token *tokenize(void) {
 	Token *cur = head;
 
 	char *end;
+	int punct_len;
 	while (*p) {
 		// Skip whitespace characters.
 		if (isspace(*p)) {
@@ -154,10 +174,11 @@ Token *tokenize(void) {
 		}
 
 		// Punctuators
-		if (isapunct(*p)) {
-			cur->next = new_token(TK_PUNCT, p, p + 1);
+		punct_len = read_punct(p);
+		if (punct_len) {
+			cur->next = new_token(TK_PUNCT, p, p + punct_len);
 			cur = cur->next;
-			p += 1;
+			p += cur->len;
 			continue;
 		}
 
@@ -173,12 +194,16 @@ Token *tokenize(void) {
 // PARSER
 //
 
-#define ND_ADD 0 // +
-#define ND_SUB 1 // -
-#define ND_MUL 2 // *
-#define ND_DIV 3 // /
-#define ND_NUM 4 // Integer
-#define ND_NEG 5 // unary -
+#define ND_ADD  0 // +
+#define ND_SUB  1 // -
+#define ND_MUL  2 // *
+#define ND_DIV  3 // /
+#define ND_NUM  4 // Integer
+#define ND_NEG  5 // unary -
+#define ND_EQ   6 // ==
+#define ND_NE   7 // !=
+#define ND_LT   8 // <
+#define ND_LE   9 // <=
 
 // AST node type
 struct Node {
@@ -215,12 +240,70 @@ Node *new_num(int val) {
 }
 
 Node *expr(Token **rest, Token *tok);
+Node *equality(Token **rest, Token *tok);
+Node *relational(Token **rest, Token *tok);
+Node *add(Token **rest, Token *tok);
 Node *mul(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 
-// expr = mul ("+" mul | "-" mul)*
+// expr = equality
 Node *expr(Token **rest, Token *tok) {
+	return equality(rest, tok);
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+Node *equality(Token **rest, Token *tok) {
+	Node *node = relational(&tok, tok);
+
+	while (1) {
+		if (equal(tok, "==")) {
+			node = new_binary(ND_EQ, node, relational(&tok, tok->next));
+			continue;
+		}
+		
+		if (equal(tok, "!=")) {
+			node = new_binary(ND_NE, node, relational(&tok, tok->next));
+			continue;
+		}
+
+		*rest = tok;
+		return node;
+	}
+}
+
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+Node *relational(Token **rest, Token *tok) {
+	Node *node = add(&tok, tok);
+
+	while (1) {
+		if (equal(tok, "<")) {
+			node = new_binary(ND_LT, node, add(&tok, tok->next));
+			continue;
+		}
+
+		if (equal(tok, "<=")) {
+			node = new_binary(ND_LE, node, add(&tok, tok->next));
+			continue;
+		}
+
+		if (equal(tok, ">")) {
+			node = new_binary(ND_LT, add(&tok, tok->next), node);
+			continue;
+		}
+
+		if (equal(tok, ">=")) {
+			node = new_binary(ND_LE, add(&tok, tok->next), node);
+			continue;
+		}
+
+		*rest = tok;
+		return node;
+	}
+}
+
+// add = mul ("+" mul | "-" mul)*
+Node *add(Token **rest, Token *tok) {
 	Node *node = mul(&tok, tok);
 
 	while (1) {
@@ -238,6 +321,7 @@ Node *expr(Token **rest, Token *tok) {
 		return node;
 	}
 }
+
 
 // mul = unary ("*" unary | "/" unary)*
 Node *mul(Token **rest, Token *tok) {
@@ -352,6 +436,14 @@ int gen_expr(Node *node) {
 		return function_def(operation(lhs, rhs, "*"));
 	} else if (node->kind == ND_DIV) {
 		return function_def(operation(lhs, rhs, "/"));
+	} else if (node->kind == ND_EQ) {
+		return function_def(operation(lhs, rhs, "=="));
+	} else if (node->kind == ND_NE) {
+		return function_def(operation(lhs, rhs, "!="));
+	} else if (node->kind == ND_LT) {
+		return function_def(operation(lhs, rhs, "<"));
+	} else if (node->kind == ND_LE) {
+		return function_def(operation(lhs, rhs, "<="));
 	}
 
 	error("invalid expression");
