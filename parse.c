@@ -1,5 +1,22 @@
 #include "chibicc.h"
 
+// All local variable instances created during parsing are accumulated
+// to this list.
+Obj *locals;
+
+// Find a local variable by name.
+Obj *find_var(Token *tok) {
+	Obj *var;
+	for (var = locals; var; var = var->next) {
+		// If the variable is actually the variable
+		if (strlen(var->name) == tok->len &&
+				!strncmp(tok->loc, var->name, tok->len)) {
+			return var;
+		}
+	}
+	return NULL;
+}
+
 Node *new_node(int kind) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
@@ -25,10 +42,18 @@ Node *new_num(int val) {
 	return node;
 }
 
-Node *new_var_node(char name) {
+Node *new_var_node(Obj *var) {
 	Node *node = new_node(ND_VAR);
-	node->name = name;
+	node->var = var;
 	return node;
+}
+
+Obj *new_lvar(char *name) {
+	Obj *var = calloc(1, sizeof(Obj));
+	var->name = name;
+	var->next = locals;
+	locals = var;
+	return var;
 }
 
 Node *expr(Token **rest, Token *tok);
@@ -181,9 +206,15 @@ Node *primary(Token **rest, Token *tok) {
 	}
 
 	if (tok->kind == TK_IDENT) {
-		Node *node = new_var_node(tok->loc[0]);
+		Obj *var = find_var(tok);
+		// If variable not yet set
+		if (!var) {
+			char *name = calloc(tok->len, sizeof(char));
+			strncpy(name, tok->loc, tok->len);
+			var = new_lvar(name);
+		}
 		*rest = tok->next;
-		return node;
+		return new_var_node(var);
 	}
 
 	if (tok->kind == TK_NUM) {
@@ -196,12 +227,17 @@ Node *primary(Token **rest, Token *tok) {
 }
 
 // program = stmt*
-Node *parse(Token *tok) {
+Function *parse(Token *tok) {
 	Node *head = calloc(1, sizeof(Node));
 	Node *cur = head;
+
 	while (tok->kind != TK_EOF) {
 		cur->next = stmt(&tok, tok);
 		cur = cur->next;
 	}
-	return head->next;
+
+	Function *prog = calloc(1, sizeof(Function));
+	prog->body = head->next;
+	prog->locals = locals;
+	return prog;
 }

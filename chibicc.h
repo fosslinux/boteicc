@@ -12,6 +12,7 @@
 // tokenize.c
 //
 
+// Token
 #define TK_IDENT 0 // Identifiers
 #define TK_PUNCT 1 // Punctuators
 #define TK_NUM   2 // Numeric literals
@@ -38,6 +39,15 @@ Token *tokenize(char *input);
 // parse.c
 //
 
+// Local variable
+struct Obj {
+	struct Obj *next;
+	char *name; // Variable name
+	int offset; // Offset from EBP
+};
+typedef struct Obj Obj;
+
+// AST node
 #define ND_ADD        0 // +
 #define ND_SUB        1 // -
 #define ND_MUL        2 // *
@@ -58,18 +68,26 @@ struct Node {
 	struct Node *next; // Next node
 	struct Node *lhs;  // Left-hand side
 	struct Node *rhs;  // Right-hand side
-	char name;         // Used if kind == ND_VAR
+	Obj *var;          // Used if kind == ND_VAR
 	int val;           // Used if kind == ND_NUM
 };
 typedef struct Node Node;
 
-Node *parse(Token *tok);
+// Function
+struct Function {
+	Node *body;
+	Obj *locals;
+	int stack_size;
+};
+typedef struct Function Function;
+
+Function *parse(Token *tok);
 
 //
 // codegen.c
 //
 
-void codegen(Node *node);
+void codegen(Function *prog);
 
 //
 // util.c

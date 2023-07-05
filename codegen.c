@@ -18,14 +18,18 @@ void pop(char *arg) {
 	depth -= 1;
 }
 
+// Round up `n` to the nearest multiple of `align.`
+int align_to(int n, int align) {
+	return (n + align - 1) / align * align;
+}
+
 // Compute the absolute address of a given node.
 // TODO: Fix M2-Planet not liking apostrophes in comments..
 // It is an error if the given node does not reside in memory.
 void gen_addr(Node *node) {
 	if (node->kind == ND_VAR) {
-		int offset = (node->name - 'a' + 1) * 8;
 		fputs("lea_eax,[ebp+DWORD] %", stdout);
-		fputs(int2str(-offset, 10, TRUE), stdout);
+		fputs(int2str(node->var->offset, 10, TRUE), stdout);
 		fputc('\n', stdout);
 		return;
 	}
@@ -115,16 +119,31 @@ void gen_stmt(Node *node) {
 	error("invalid statement");
 }
 
-void codegen(Node *node) {
+// Assign offsets to local variables.
+void assign_lvar_offsets(Function *prog) {
+	int offset = 0;
+	Obj *var;
+	for (var = prog->locals; var; var = var->next) {
+		offset += 8;
+		var->offset = -offset;
+	}
+	prog->stack_size = align_to(offset, 16);
+}
+
+void codegen(Function *prog) {
+	assign_lvar_offsets(prog);
+
 	puts(":FUNCTION_main");
 
 	// Prologue
 	puts("push_ebp");
 	puts("mov_ebp,esp");
-	puts("sub_esp, %208");
+	fputs("sub_esp, %", stdout);
+	fputs(uint2str(prog->stack_size), stdout);
+	fputc('\n', stdout);
 
 	Node *n;
-	for (n = node; n; n = n->next) {
+	for (n = prog->body; n; n = n->next) {
 		gen_stmt(n);
 		if (depth != 0) {
 			error("depth not 0 at end of statement");

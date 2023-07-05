@@ -35,7 +35,10 @@ int equal(Token *tok, char *op) {
 // Ensure that the current token is `s`.
 Token *skip(Token *tok, char *s) {
 	if (!equal(tok, s)) {
-		error_tok(tok, strcat("expected ", s));
+		char *err = calloc(MAX_STRING, sizeof(char));
+		strcpy(err, "expected ");
+		strcat(err, s);
+		error_tok(tok, err);
 	}
 	return tok->next;
 }
@@ -55,6 +58,16 @@ Token *new_token(int kind, char *start, char *end) {
 	tok->loc = start;
 	tok->len = end - start;
 	return tok;
+}
+
+// Returns true if c is valid as the first character of an identifier.
+int is_ident1(char c) {
+	return isaalpha(c) || c == '_';
+}
+
+// Returns true if c is valid as a non-first character of an identifier;
+int is_ident2(char c) {
+	return is_ident1(c) || isadigit(c);
 }
 
 // Read a punctuator toekn from p and return its length.
@@ -77,6 +90,7 @@ Token *tokenize(char *p) {
 	Token *head = calloc(1, sizeof(Token));
 	Token *cur = head;
 
+	char *start;
 	char *end;
 	int punct_len;
 	while (*p) {
@@ -98,10 +112,13 @@ Token *tokenize(char *p) {
 		}
 
 		// Identifier
-		if ('a' <= *p && *p <= 'z') {
-			cur->next = new_token(TK_IDENT, p, p + 1);
+		if (is_ident1(*p)) {
+			start = p;
+			do {
+				p += 1;
+			} while (is_ident2(*p));
+			cur->next = new_token(TK_IDENT, start, p);
 			cur = cur->next;
-			p += 1;
 			continue;
 		}
 

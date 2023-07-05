@@ -2,7 +2,7 @@
 
 // isadigit
 int isadigit(char c) {
-	return (c >= 48 && c <= 57);
+	return ('0' <= c && c <= '9');
 }
 
 // isagraph
@@ -12,7 +12,7 @@ int isagraph(char c) {
 
 // isaalpha
 int isaalpha(char c) {
-	return (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
 }
 
 // isapunct
