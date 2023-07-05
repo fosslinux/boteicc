@@ -137,7 +137,9 @@ void gen_stmt(Node *node) {
 		return;
 	} else if (node->kind == ND_FOR) {
 		int c = count();
-		gen_stmt(node->init);
+		if (node->init) {
+			gen_stmt(node->init);
+		}
 		num_postfix(":FOR_begin_", c);
 		if (node->cond) {
 			gen_expr(node->cond);

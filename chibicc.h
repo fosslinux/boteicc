@@ -65,7 +65,7 @@ typedef struct Obj Obj;
 #define ND_RETURN    13 // "return"
 #define ND_BLOCK     14 // { ... }
 #define ND_IF        15 // "if"
-#define ND_FOR       16 // "for"
+#define ND_FOR       16 // "for" or "while"
 
 // AST node type
 struct Node {

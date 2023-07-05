@@ -88,7 +88,8 @@ int is_keyword(Token *tok) {
 	if (equal(tok, "return") ||
 			equal(tok, "if") ||
 			equal(tok, "else") ||
-			equal(tok, "for")) {
+			equal(tok, "for") ||
+			equal(tok, "while")) {
 		return TRUE;
 	}
 	return FALSE;
