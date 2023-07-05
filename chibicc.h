@@ -71,6 +71,8 @@ typedef struct Obj Obj;
 struct Node {
 	int kind;          // Node kind
 	struct Node *next; // Next node
+	Token *tok;        // Representative token
+
 	struct Node *lhs;  // Left-hand side
 	struct Node *rhs;  // Right-hand side
 

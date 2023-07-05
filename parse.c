@@ -17,33 +17,34 @@ Obj *find_var(Token *tok) {
 	return NULL;
 }
 
-Node *new_node(int kind) {
+Node *new_node(int kind, Token *tok) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
+	node->tok = tok;
 	return node;
 }
 
-Node *new_binary(int kind, Node *lhs, Node *rhs) {
-	Node *node = new_node(kind);
+Node *new_binary(int kind, Node *lhs, Node *rhs, Token *tok) {
+	Node *node = new_node(kind, tok);
 	node->lhs = lhs;
 	node->rhs = rhs;
 	return node;
 }
 
-Node *new_unary(int kind, Node *expr) {
-	Node *node = new_node(kind);
+Node *new_unary(int kind, Node *expr, Token *tok) {
+	Node *node = new_node(kind, tok);
 	node->lhs = expr;
 	return node;
 }
 
-Node *new_num(int val) {
-	Node *node = new_node(ND_NUM);
+Node *new_num(int val, Token *tok) {
+	Node *node = new_node(ND_NUM, tok);
 	node->val = val;
 	return node;
 }
 
-Node *new_var_node(Obj *var) {
-	Node *node = new_node(ND_VAR);
+Node *new_var_node(Obj *var, Token *tok) {
+	Node *node = new_node(ND_VAR, tok);
 	node->var = var;
 	return node;
 }
@@ -75,13 +76,14 @@ Node *unary(Token **rest, Token *tok);
 //      | expr-stmt
 Node *stmt(Token **rest, Token *tok) {
 	if (equal(tok, "return")) {
-		Node *node = new_unary(ND_RETURN, expr(&tok, tok->next));
+		Node *node = new_node(ND_RETURN, tok);
+		node->lhs = expr(&tok, tok->next);
 		*rest = skip(tok, ";");
 		return node;
 	}
 
 	if (equal(tok, "if")) {
-		Node *node = new_node(ND_IF);
+		Node *node = new_node(ND_IF, tok);
 		tok = skip(tok->next, "(");
 		node->cond = expr(&tok, tok);
 		tok = skip(tok, ")");
@@ -94,7 +96,7 @@ Node *stmt(Token **rest, Token *tok) {
 	}
 
 	if (equal(tok, "for")) {
-		Node *node = new_node(ND_FOR);
+		Node *node = new_node(ND_FOR, tok);
 		tok = skip(tok->next, "(");
 
 		node->init = expr_stmt(&tok, tok);
@@ -114,7 +116,7 @@ Node *stmt(Token **rest, Token *tok) {
 	}
 
 	if (equal(tok, "while")) {
-		Node *node = new_node(ND_FOR);
+		Node *node = new_node(ND_FOR, tok);
 		tok = skip(tok->next, "(");
 		node->cond = expr(&tok, tok);
 		tok = skip(tok, ")");
@@ -138,7 +140,7 @@ Node *compound_stmt(Token **rest, Token *tok) {
 		cur = cur->next;
 	}
 
-	Node *node = new_node(ND_BLOCK);
+	Node *node = new_node(ND_BLOCK, tok);
 	node->body = head->next;
 	*rest = tok->next;
 	return node;
@@ -149,10 +151,11 @@ Node *expr_stmt(Token **rest, Token *tok) {
 	if (equal(tok, ";")) {
 		// Null statement
 		*rest = tok->next;
-		return new_node(ND_BLOCK);
+		return new_node(ND_BLOCK, tok);
 	}
 
-	Node *node = new_unary(ND_EXPR_STMT, expr(&tok, tok));
+	Node *node = new_node(ND_EXPR_STMT, tok);
+	node->lhs = expr(&tok, tok);
 	*rest = skip(tok, ";");
 	return node;
 }
@@ -166,7 +169,7 @@ Node *expr(Token **rest, Token *tok) {
 Node *assign(Token **rest, Token *tok) {
 	Node *node = equality(&tok, tok);
 	if (equal(tok, "=")) {
-		node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next));
+		node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next), tok);
 	}
 	*rest = tok;
 	return node;
@@ -176,14 +179,16 @@ Node *assign(Token **rest, Token *tok) {
 Node *equality(Token **rest, Token *tok) {
 	Node *node = relational(&tok, tok);
 
+	Token *start;
 	while (1) {
+		start = tok;
 		if (equal(tok, "==")) {
-			node = new_binary(ND_EQ, node, relational(&tok, tok->next));
+			node = new_binary(ND_EQ, node, relational(&tok, tok->next), start);
 			continue;
 		}
 		
 		if (equal(tok, "!=")) {
-			node = new_binary(ND_NE, node, relational(&tok, tok->next));
+			node = new_binary(ND_NE, node, relational(&tok, tok->next), start);
 			continue;
 		}
 
@@ -196,24 +201,26 @@ Node *equality(Token **rest, Token *tok) {
 Node *relational(Token **rest, Token *tok) {
 	Node *node = add(&tok, tok);
 
+	Token *start;
 	while (1) {
+		start = tok;
 		if (equal(tok, "<")) {
-			node = new_binary(ND_LT, node, add(&tok, tok->next));
+			node = new_binary(ND_LT, node, add(&tok, tok->next), start);
 			continue;
 		}
 
 		if (equal(tok, "<=")) {
-			node = new_binary(ND_LE, node, add(&tok, tok->next));
+			node = new_binary(ND_LE, node, add(&tok, tok->next), start);
 			continue;
 		}
 
 		if (equal(tok, ">")) {
-			node = new_binary(ND_LT, add(&tok, tok->next), node);
+			node = new_binary(ND_LT, add(&tok, tok->next), node, start);
 			continue;
 		}
 
 		if (equal(tok, ">=")) {
-			node = new_binary(ND_LE, add(&tok, tok->next), node);
+			node = new_binary(ND_LE, add(&tok, tok->next), node, start);
 			continue;
 		}
 
@@ -226,14 +233,16 @@ Node *relational(Token **rest, Token *tok) {
 Node *add(Token **rest, Token *tok) {
 	Node *node = mul(&tok, tok);
 
+	Token *start;
 	while (1) {
+		start = tok;
 		if (equal(tok, "+")) {
-			node = new_binary(ND_ADD, node, mul(&tok, tok->next));
+			node = new_binary(ND_ADD, node, mul(&tok, tok->next), start);
 			continue;
 		}
 
 		if (equal(tok, "-")) {
-			node = new_binary(ND_SUB, node, mul(&tok, tok->next));
+			node = new_binary(ND_SUB, node, mul(&tok, tok->next), start);
 			continue;
 		}
 
@@ -246,14 +255,16 @@ Node *add(Token **rest, Token *tok) {
 Node *mul(Token **rest, Token *tok) {
 	Node *node = unary(&tok, tok);
 
+	Token *start;
 	while (1) {
+		start = tok;
 		if (equal(tok, "*")) {
-			node = new_binary(ND_MUL, node, unary(&tok, tok->next));
+			node = new_binary(ND_MUL, node, unary(&tok, tok->next), start);
 			continue;
 		}
 
 		if (equal(tok, "/")) {
-			node = new_binary(ND_DIV, node, unary(&tok, tok->next));
+			node = new_binary(ND_DIV, node, unary(&tok, tok->next), start);
 			continue;
 		}
 
@@ -270,7 +281,7 @@ Node *unary(Token **rest, Token *tok) {
 	}
 
 	if (equal(tok, "-")) {
-		return new_unary(ND_NEG, unary(rest, tok->next));
+		return new_unary(ND_NEG, unary(rest, tok->next), tok);
 	}
 
 	return primary(rest, tok);
@@ -293,11 +304,11 @@ Node *primary(Token **rest, Token *tok) {
 			var = new_lvar(name);
 		}
 		*rest = tok->next;
-		return new_var_node(var);
+		return new_var_node(var, tok);
 	}
 
 	if (tok->kind == TK_NUM) {
-		Node *node = new_num(tok->val);
+		Node *node = new_num(tok->val, tok);
 		*rest = tok->next;
 		return node;
 	}
