@@ -13,10 +13,11 @@
 //
 
 // Token
-#define TK_IDENT 0 // Identifiers
-#define TK_PUNCT 1 // Punctuators
-#define TK_NUM   2 // Numeric literals
-#define TK_EOF   3 // End-of-file markers
+#define TK_IDENT   0 // Identifiers
+#define TK_PUNCT   1 // Punctuators
+#define TK_KEYWORD 2 // Keywords
+#define TK_NUM     3 // Numeric literals
+#define TK_EOF     4 // End-of-file markers
 
 // Token type
 struct Token {
@@ -61,6 +62,7 @@ typedef struct Obj Obj;
 #define ND_EXPR_STMT 10 // Expression statement
 #define ND_ASSIGN    11 // =
 #define ND_VAR       12 // Variable
+#define ND_RETURN    13 // "return"
 
 // AST node type
 struct Node {

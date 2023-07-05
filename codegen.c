@@ -111,7 +111,11 @@ void gen_expr(Node *node) {
 }
 
 void gen_stmt(Node *node) {
-	if (node->kind == ND_EXPR_STMT) {
+	if (node->kind == ND_RETURN) {
+		gen_expr(node->lhs);
+		puts("jmp %BUILTIN_return");
+		return;
+	} else if (node->kind == ND_EXPR_STMT) {
 		gen_expr(node->lhs);
 		return;
 	}
@@ -151,6 +155,7 @@ void codegen(Function *prog) {
 	}
 
 	// Epilogue
+	puts(":BUILTIN_return");
 	puts("mov_esp,ebp");
 	pop("ebp");
 	puts("ret");
