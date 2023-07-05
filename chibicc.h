@@ -65,6 +65,7 @@ typedef struct Obj Obj;
 #define ND_RETURN    13 // "return"
 #define ND_BLOCK     14 // { ... }
 #define ND_IF        15 // "if"
+#define ND_FOR       16 // "for"
 
 // AST node type
 struct Node {
@@ -73,10 +74,12 @@ struct Node {
 	struct Node *lhs;  // Left-hand side
 	struct Node *rhs;  // Right-hand side
 
-	// "if" statement
+	// "if" or "for" statement
 	struct Node *cond;
 	struct Node *then;
 	struct Node *els;
+	struct Node *init;
+	struct Node *inc;
 
 	// Block
 	struct Node *body;

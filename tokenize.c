@@ -87,7 +87,8 @@ int read_punct(char *p) {
 int is_keyword(Token *tok) {
 	if (equal(tok, "return") ||
 			equal(tok, "if") ||
-			equal(tok, "else")) {
+			equal(tok, "else") ||
+			equal(tok, "for")) {
 		return TRUE;
 	}
 	return FALSE;

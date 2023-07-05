@@ -43,13 +43,17 @@ void gen_addr(Node *node) {
 	error("not an lvalue");
 }
 
+void num_postfix(char *str, int c) {
+	fputs(str, stdout);
+	fputs(uint2str(c), stdout);
+	fputc('\n', stdout);
+}
+
 // Generate code for a given node.
 void gen_expr(Node *node) {
 	// Sideless
 	if (node->kind == ND_NUM) {
-		fputs("mov_eax, %", stdout);
-		fputs(uint2str(node->val), stdout);
-		fputc('\n', stdout);
+		num_postfix("mov_eax, %", node->val);
 		return;
 	}
 
@@ -122,22 +126,31 @@ void gen_stmt(Node *node) {
 		gen_expr(node->cond);
 		puts("mov_ebx, %0");
 		puts("cmp");
-		fputs("je %COND_else_", stdout);
-		fputs(uint2str(c), stdout);
-		fputc('\n', stdout);
+		num_postfix("je %IF_else_", c);
 		gen_stmt(node->then);
-		fputs("jmp %COND_end_", stdout);
-		fputs(uint2str(c), stdout);
-		fputc('\n', stdout);
-		fputs(":COND_else_", stdout);
-		fputs(uint2str(c), stdout);
-		fputc('\n', stdout);
+		num_postfix("jmp %IF_end_", c);
+		num_postfix(":IF_else_", c);
 		if (node->els) {
 			gen_stmt(node->els);
 		}
-		fputs(":COND_end_", stdout);
-		fputs(uint2str(c), stdout);
-		fputc('\n', stdout);
+		num_postfix(":IF_end_", c);
+		return;
+	} else if (node->kind == ND_FOR) {
+		int c = count();
+		gen_stmt(node->init);
+		num_postfix(":FOR_begin_", c);
+		if (node->cond) {
+			gen_expr(node->cond);
+			puts("mov_ebx, %0");
+			puts("cmp");
+			num_postfix("je %FOR_end_", c);
+		}
+		gen_stmt(node->then);
+		if (node->inc) {
+			gen_expr(node->inc);
+		}
+		num_postfix("jmp %FOR_begin_", c);
+		num_postfix(":FOR_end_", c);
 		return;
 	} else if (node->kind == ND_BLOCK) {
 		Node *n;
@@ -176,9 +189,7 @@ void codegen(Function *prog) {
 	// Prologue
 	puts("push_ebp");
 	puts("mov_ebp,esp");
-	fputs("sub_esp, %", stdout);
-	fputs(uint2str(prog->stack_size), stdout);
-	fputc('\n', stdout);
+	num_postfix("sub_esp, %", prog->stack_size);
 
 	gen_stmt(prog->body);
 	if (depth != 0) {
