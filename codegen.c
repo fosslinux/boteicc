@@ -2,6 +2,12 @@
 
 int depth;
 
+int counter = 1;
+int count(void) {
+	counter += 1;
+	return counter;
+}
+
 void push(void) {
 	puts("push_eax");
 	depth += 1;
@@ -111,7 +117,29 @@ void gen_expr(Node *node) {
 }
 
 void gen_stmt(Node *node) {
-	if (node->kind == ND_BLOCK) {
+	if (node->kind == ND_IF) {
+		int c = count();
+		gen_expr(node->cond);
+		puts("mov_ebx, %0");
+		puts("cmp");
+		fputs("je %COND_else_", stdout);
+		fputs(uint2str(c), stdout);
+		fputc('\n', stdout);
+		gen_stmt(node->then);
+		fputs("jmp %COND_end_", stdout);
+		fputs(uint2str(c), stdout);
+		fputc('\n', stdout);
+		fputs(":COND_else_", stdout);
+		fputs(uint2str(c), stdout);
+		fputc('\n', stdout);
+		if (node->els) {
+			gen_stmt(node->els);
+		}
+		fputs(":COND_end_", stdout);
+		fputs(uint2str(c), stdout);
+		fputc('\n', stdout);
+		return;
+	} else if (node->kind == ND_BLOCK) {
 		Node *n;
 		for (n = node->body; n; n = n->next) {
 			gen_stmt(n);

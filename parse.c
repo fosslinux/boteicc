@@ -68,12 +68,26 @@ Node *primary(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 
 // stmt = "return" expr ";"
+//      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "{" compound-stmt
 //      | expr-stmt
 Node *stmt(Token **rest, Token *tok) {
 	if (equal(tok, "return")) {
 		Node *node = new_unary(ND_RETURN, expr(&tok, tok->next));
 		*rest = skip(tok, ";");
+		return node;
+	}
+
+	if (equal(tok, "if")) {
+		Node *node = new_node(ND_IF);
+		tok = skip(tok->next, "(");
+		node->cond = expr(&tok, tok);
+		tok = skip(tok, ")");
+		node->then = stmt(&tok, tok);
+		if (equal(tok, "else")) {
+			node->els = stmt(&tok, tok->next);
+		}
+		*rest = tok;
 		return node;
 	}
 
@@ -99,8 +113,14 @@ Node *compound_stmt(Token **rest, Token *tok) {
 	return node;
 }
 
-// expr-stmt = expr ";"
+// expr-stmt = expr? ";"
 Node *expr_stmt(Token **rest, Token *tok) {
+	if (equal(tok, ";")) {
+		// Null statement
+		*rest = tok->next;
+		return new_node(ND_BLOCK);
+	}
+
 	Node *node = new_unary(ND_EXPR_STMT, expr(&tok, tok));
 	*rest = skip(tok, ";");
 	return node;
