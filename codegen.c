@@ -1,95 +1,105 @@
 #include "chibicc.h"
 
-int function = 1;
+int depth;
 
-int function_def(char *str) {
-	fputs("int f", stdout);
-	fputs(uint2str(function), stdout);
-	fputs("() { ", stdout);
-	fputs(str, stdout);
-	fputs("}\n", stdout);
-	function += 1;
-	return function - 1;
+void push(void) {
+	puts("push_eax");
+	depth += 1;
 }
 
-char *operation(int lhs, int rhs, char *symbol) {
-	char *full = calloc(MAX_STRING, sizeof(char));
-	strcpy(full, "return f");
-	strcat(full, uint2str(lhs));
-	strcat(full, "()");
-	strcat(full, symbol);
-	strcat(full, "f");
-	strcat(full, uint2str(rhs));
-	strcat(full, "(); ");
-	return full;
+void pop(char *arg) {
+	if (strcmp(arg, "eax") || strcmp(arg, "ebx") || strcmp(arg, "ebp") || strcmp(arg, "edi")) {
+		fputs("pop_", stdout);
+		fputs(arg, stdout);
+		fputc('\n', stdout);
+	} else {
+		error("invalid pop");
+	}
+	depth -= 1;
 }
 
-int gen_expr(Node *node) {
+void gen_expr(Node *node) {
 	// Sideless
 	if (node->kind == ND_NUM) {
-		char *full = calloc(MAX_STRING, sizeof(char));
-		strcpy(full, "return ");
-		strcat(full, uint2str(node->val));
-		strcat(full, "; ");
-		return function_def(full);
+		fputs("mov_eax, %", stdout);
+		fputs(uint2str(node->val), stdout);
+		fputc('\n', stdout);
+		return;
 	}
 
 	// Unary
-	int lhs = gen_expr(node->lhs);
-
 	if (node->kind == ND_NEG) {
-		char *full = calloc(MAX_STRING, sizeof(char));
-		strcpy(full, "return -f");
-		strcat(full, uint2str(lhs));
-		strcat(full, "(); ");
-		return function_def(full);
+		gen_expr(node->lhs);
+		puts("mov_ebx, %0");
+		puts("sub_ebx,eax");
+		puts("mov_eax,ebx");
+		return;
 	}
 
 	// Binary
-	int rhs = gen_expr(node->rhs);
+	gen_expr(node->rhs);
+	push();
+	gen_expr(node->lhs);
 
 	if (node->kind == ND_ADD) {
-		return function_def(operation(lhs, rhs, "+"));
+		pop("ebx");
+		puts("add_eax,ebx");
+		return;
 	} else if (node->kind == ND_SUB) {
-		return function_def(operation(lhs, rhs, "-"));
+		puts("mov_ebx,eax");
+		pop("eax");
+		puts("sub_ebx,eax");
+		puts("mov_eax,ebx");
+		return;
 	} else if (node->kind == ND_MUL) {
-		return function_def(operation(lhs, rhs, "*"));
+		pop("ebx");
+		puts("imul_ebx");
+		return;
 	} else if (node->kind == ND_DIV) {
-		return function_def(operation(lhs, rhs, "/"));
-	} else if (node->kind == ND_EQ) {
-		return function_def(operation(lhs, rhs, "=="));
-	} else if (node->kind == ND_NE) {
-		return function_def(operation(lhs, rhs, "!="));
-	} else if (node->kind == ND_LT) {
-		return function_def(operation(lhs, rhs, "<"));
-	} else if (node->kind == ND_LE) {
-		return function_def(operation(lhs, rhs, "<="));
+		pop("ebx");
+		puts("idiv_ebx");
+		return;
+	} else if (node->kind == ND_EQ || node->kind == ND_NE ||
+			node->kind == ND_LT || node->kind == ND_LE) {
+		puts("mov_ebx,eax");
+		pop("eax");
+		puts("cmp");
+		if (node->kind == ND_EQ) {
+			puts("sete_al");
+		} else if (node->kind == ND_NE) {
+			puts("setne_al");
+		} else if (node->kind == ND_LT) {
+			puts("setl_al");
+		} else if (node->kind == ND_LE) {
+			puts("setle_al");
+		}
+		puts("movzx_eax,al");
+		return;
 	}
 
 	error("invalid expression");
 }
 
-int gen_stmt(Node *node) {
+void gen_stmt(Node *node) {
 	if (node->kind == ND_EXPR_STMT) {
-		return gen_expr(node->lhs);
+		gen_expr(node->lhs);
+		return;
 	}
 
 	error("invalid statement");
 }
 
 void codegen(Node *node) {
-	char *mainline = calloc(MAX_STRING, sizeof(char));
-	strcpy(mainline, "int main() { int ret; ");
+	puts(":FUNCTION_main");
 
 	Node *n;
-	int nfunc;
 	for (n = node; n; n = n->next) {
-		strcat(mainline, "ret = f");
-		nfunc = gen_stmt(n);
-		strcat(mainline, uint2str(nfunc));
-		strcat(mainline, "(); ");
+		gen_stmt(n);
+		if (depth != 0) {
+			error("depth not 0 at end of statement");
+		}
 	}
 
-	strcat(mainline, "return ret; }\n");
-	fputs(mainline, stdout);
+	puts("ret");
+	puts(":ELF_data");
 }
