@@ -63,6 +63,7 @@ typedef struct Obj Obj;
 #define ND_ASSIGN    11 // =
 #define ND_VAR       12 // Variable
 #define ND_RETURN    13 // "return"
+#define ND_BLOCK     14 // { ... }
 
 // AST node type
 struct Node {
@@ -70,6 +71,10 @@ struct Node {
 	struct Node *next; // Next node
 	struct Node *lhs;  // Left-hand side
 	struct Node *rhs;  // Right-hand side
+
+	// Block
+	struct Node *body;
+
 	Obj *var;          // Used if kind == ND_VAR
 	int val;           // Used if kind == ND_NUM
 };

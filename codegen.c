@@ -111,7 +111,13 @@ void gen_expr(Node *node) {
 }
 
 void gen_stmt(Node *node) {
-	if (node->kind == ND_RETURN) {
+	if (node->kind == ND_BLOCK) {
+		Node *n;
+		for (n = node->body; n; n = n->next) {
+			gen_stmt(n);
+		}
+		return;
+	} else if (node->kind == ND_RETURN) {
 		gen_expr(node->lhs);
 		puts("jmp %BUILTIN_return");
 		return;
@@ -146,12 +152,9 @@ void codegen(Function *prog) {
 	fputs(uint2str(prog->stack_size), stdout);
 	fputc('\n', stdout);
 
-	Node *n;
-	for (n = prog->body; n; n = n->next) {
-		gen_stmt(n);
-		if (depth != 0) {
-			error("depth not 0 at end of statement");
-		}
+	gen_stmt(prog->body);
+	if (depth != 0) {
+		error("depth not 0 at end of statement");
 	}
 
 	// Epilogue
