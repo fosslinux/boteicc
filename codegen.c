@@ -18,6 +18,22 @@ void pop(char *arg) {
 	depth -= 1;
 }
 
+// Compute the absolute address of a given node.
+// TODO: Fix M2-Planet not liking apostrophes in comments..
+// It is an error if the given node does not reside in memory.
+void gen_addr(Node *node) {
+	if (node->kind == ND_VAR) {
+		int offset = (node->name - 'a' + 1) * 8;
+		fputs("lea_eax,[ebp+DWORD] %", stdout);
+		fputs(int2str(-offset, 10, TRUE), stdout);
+		fputc('\n', stdout);
+		return;
+	}
+
+	error("not an lvalue");
+}
+
+// Generate code for a given node.
 void gen_expr(Node *node) {
 	// Sideless
 	if (node->kind == ND_NUM) {
@@ -27,12 +43,22 @@ void gen_expr(Node *node) {
 		return;
 	}
 
-	// Unary
 	if (node->kind == ND_NEG) {
 		gen_expr(node->lhs);
 		puts("mov_ebx, %0");
 		puts("sub_ebx,eax");
 		puts("mov_eax,ebx");
+		return;
+	} else if (node->kind == ND_VAR) {
+		gen_addr(node);
+		puts("mov_eax,[eax]");
+		return;
+	} else if (node->kind == ND_ASSIGN) {
+		gen_addr(node->lhs);
+		push();
+		gen_expr(node->rhs);
+		pop("ebx");
+		puts("mov_[ebx],eax");
 		return;
 	}
 
@@ -92,6 +118,11 @@ void gen_stmt(Node *node) {
 void codegen(Node *node) {
 	puts(":FUNCTION_main");
 
+	// Prologue
+	puts("push_ebp");
+	puts("mov_ebp,esp");
+	puts("sub_esp, %208");
+
 	Node *n;
 	for (n = node; n; n = n->next) {
 		gen_stmt(n);
@@ -100,6 +131,9 @@ void codegen(Node *node) {
 		}
 	}
 
+	// Epilogue
+	puts("mov_esp,ebp");
+	pop("ebp");
 	puts("ret");
 	puts(":ELF_data");
 }

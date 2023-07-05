@@ -12,9 +12,10 @@
 // tokenize.c
 //
 
-#define TK_PUNCT 0
-#define TK_NUM 1
-#define TK_EOF 2
+#define TK_IDENT 0 // Identifiers
+#define TK_PUNCT 1 // Punctuators
+#define TK_NUM   2 // Numeric literals
+#define TK_EOF   3 // End-of-file markers
 
 // Token type
 struct Token {
@@ -48,6 +49,8 @@ Token *tokenize(char *input);
 #define ND_LT         8 // <
 #define ND_LE         9 // <=
 #define ND_EXPR_STMT 10 // Expression statement
+#define ND_ASSIGN    11 // =
+#define ND_VAR       12 // Variable
 
 // AST node type
 struct Node {
@@ -55,6 +58,7 @@ struct Node {
 	struct Node *next; // Next node
 	struct Node *lhs;  // Left-hand side
 	struct Node *rhs;  // Right-hand side
+	char name;         // Used if kind == ND_VAR
 	int val;           // Used if kind == ND_NUM
 };
 typedef struct Node Node;

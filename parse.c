@@ -25,8 +25,15 @@ Node *new_num(int val) {
 	return node;
 }
 
+Node *new_var_node(char name) {
+	Node *node = new_node(ND_VAR);
+	node->name = name;
+	return node;
+}
+
 Node *expr(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
+Node *assign(Token **rest, Token *tok);
 Node *equality(Token **rest, Token *tok);
 Node *relational(Token **rest, Token *tok);
 Node *add(Token **rest, Token *tok);
@@ -46,9 +53,19 @@ Node *expr_stmt(Token **rest, Token *tok) {
 	return node;
 }
 
-// expr = equality
+// expr = assign
 Node *expr(Token **rest, Token *tok) {
-	return equality(rest, tok);
+	return assign(rest, tok);
+}
+
+// assign = equality ("=" assign)?
+Node *assign(Token **rest, Token *tok) {
+	Node *node = equality(&tok, tok);
+	if (equal(tok, "=")) {
+		node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next));
+	}
+	*rest = tok;
+	return node;
 }
 
 // equality = relational ("==" relational | "!=" relational)*
@@ -116,7 +133,7 @@ Node *add(Token **rest, Token *tok) {
 			continue;
 		}
 
-		rest[0] = tok;
+		*rest = tok;
 		return node;
 	}
 }
@@ -136,7 +153,7 @@ Node *mul(Token **rest, Token *tok) {
 			continue;
 		}
 
-		rest[0] = tok;
+		*rest = tok;
 		return node;
 	}
 }
@@ -155,17 +172,23 @@ Node *unary(Token **rest, Token *tok) {
 	return primary(rest, tok);
 }
 
-// primary = "(" expr ")" | num
+// primary = "(" expr ")" | ident | num
 Node *primary(Token **rest, Token *tok) {
 	if (equal(tok, "(")) {
 		Node *node = expr(&tok, tok->next);
-		rest[0] = skip(tok, ")");
+		*rest = skip(tok, ")");
+		return node;
+	}
+
+	if (tok->kind == TK_IDENT) {
+		Node *node = new_var_node(tok->loc[0]);
+		*rest = tok->next;
 		return node;
 	}
 
 	if (tok->kind == TK_NUM) {
 		Node *node = new_num(tok->val);
-		rest[0] = tok->next;
+		*rest = tok->next;
 		return node;
 	}
 
