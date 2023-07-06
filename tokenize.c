@@ -51,6 +51,16 @@ int get_number(Token *tok) {
 	return tok->val;
 }
 
+int consume(Token **rest, Token *tok, char *str) {
+	if (equal(tok, str)) {
+		*rest = tok->next;
+		return TRUE;
+	}
+
+	*rest = tok;
+	return FALSE;
+}
+
 // Create a new token.
 Token *new_token(int kind, char *start, char *end) {
 	Token *tok = calloc(1, sizeof(Token));
@@ -89,7 +99,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "if") ||
 			equal(tok, "else") ||
 			equal(tok, "for") ||
-			equal(tok, "while")) {
+			equal(tok, "while") ||
+			equal(tok, "int")) {
 		return TRUE;
 	}
 	return FALSE;

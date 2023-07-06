@@ -51,16 +51,17 @@ void add_type(Node *node) {
 			node->kind == ND_NE ||
 			node->kind == ND_LT ||
 			node->kind == ND_LE ||
-			node->kind == ND_VAR ||
 			node->kind == ND_NUM) {
 		node->ty = ty_int;
+	} else if (node->kind == ND_VAR) {
+		node->ty = node->var->ty;
+		return;
 	} else if (node->kind == ND_ADDR) {
 		node->ty = pointer_to(node->lhs->ty);
 	} else if (node->kind == ND_DEREF) {
-		if (node->lhs->ty->kind == TY_PTR) {
-			node->ty = node->lhs->ty->base;
-		} else {
-			node->ty = ty_int;
+		if (node->lhs->ty->kind != TY_PTR) {
+			error_tok(node->tok, "invalid pointer dereference");
 		}
+		node->ty = node->lhs->ty->base;
 	}
 }

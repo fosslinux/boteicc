@@ -34,6 +34,7 @@ void error_at(char *loc, char *fmt);
 void error_tok(Token *tok, char *fmt);
 int equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
+int consume(Token **rest, Token *tok, char *str);
 Token *tokenize(char *input);
 
 //
@@ -45,13 +46,19 @@ Token *tokenize(char *input);
 
 struct Type {
 	int kind;
+
+	// Pointer
 	struct Type *base;
+
+	// Declaration
+	Token *name;
 };
 typedef struct Type Type;
 
 extern Type *ty_int;
 
 int is_integer(Type *ty);
+Type *pointer_to(Type *base);
 void initialize_types(void);
 
 //
@@ -62,6 +69,7 @@ void initialize_types(void);
 struct Obj {
 	struct Obj *next;
 	char *name; // Variable name
+	Type *ty;   // Type
 	int offset; // Offset from EBP
 };
 typedef struct Obj Obj;
