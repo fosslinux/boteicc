@@ -46,10 +46,14 @@ void gen_addr(Node *node) {
 	}
 }
 
-void num_postfix(char *str, int c) {
+void str_postfix(char *str, char *second) {
 	fputs(str, stdout);
-	fputs(uint2str(c), stdout);
+	fputs(second, stdout);
 	fputc('\n', stdout);
+}
+
+void num_postfix(char *str, int c) {
+	str_postfix(str, uint2str(c));
 }
 
 // Generate code for a given node.
@@ -83,6 +87,10 @@ void gen_expr(Node *node) {
 		gen_expr(node->rhs);
 		pop("ebx");
 		puts("mov_[ebx],eax");
+		return;
+	} else if (node->kind == ND_FUNCALL) {
+		puts("mov_eax, %0");
+		str_postfix("call %FUNCTION_", node->funcname);
 		return;
 	}
 

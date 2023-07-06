@@ -150,7 +150,7 @@ Node *declaration(Token **rest, Token *tok) {
 		cur = cur->next;
 	}
 
-	Node *node = new_node(ND_BLOCK, tok);
+	node = new_node(ND_BLOCK, tok);
 	node->body = head->next;
 	*rest = tok->next;
 	return node;
@@ -451,7 +451,8 @@ Node *unary(Token **rest, Token *tok) {
 	return primary(rest, tok);
 }
 
-// primary = "(" expr ")" | ident | num
+// primary = "(" expr ")" | ident args? | num
+// args = "(" ")"
 Node *primary(Token **rest, Token *tok) {
 	if (equal(tok, "(")) {
 		Node *node = expr(&tok, tok->next);
@@ -460,6 +461,16 @@ Node *primary(Token **rest, Token *tok) {
 	}
 
 	if (tok->kind == TK_IDENT) {
+		// Function call
+		if (equal(tok->next, "(")) {
+			Node *node = new_node(ND_FUNCALL, tok);
+			node->funcname = calloc(tok->len, sizeof(char));
+			strncpy(node->funcname, tok->loc, tok->len);
+			*rest = skip(tok->next->next, ")");
+			return node;
+		}
+
+		// Variable
 		Obj *var = find_var(tok);
 		// If variable not yet set
 		if (!var) {

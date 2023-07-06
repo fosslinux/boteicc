@@ -94,6 +94,7 @@ typedef struct Obj Obj;
 #define ND_FOR       16 // "for" or "while"
 #define ND_ADDR      17 // unary &
 #define ND_DEREF     18 // unary *
+#define ND_FUNCALL   19 // Function call
 
 // AST node type
 struct Node {
@@ -114,6 +115,9 @@ struct Node {
 
 	// Block
 	struct Node *body;
+
+	// Function call
+	char *funcname;
 
 	Obj *var;          // Used if kind == ND_VAR
 	int val;           // Used if kind == ND_NUM

@@ -1,10 +1,19 @@
 #!/bin/bash
+cat > tmp2.M1 <<EOF
+:FUNCTION_ret3
+mov_eax, %3
+ret
+:FUNCTION_ret5
+mov_eax, %5
+ret
+EOF
+
 assert() {
   expected="$1"
   input="$2"
 
   ./chibicc "$input" > tmp.M1 || exit
-  blood-elf --little-endian --file tmp.M1 --output tmp-elf.M1 && M1 --file x86_defs.M1 --file /tmp/early/M2libc/x86/libc-core.M1 --file tmp-elf.M1 --little-endian --architecture x86 --file tmp.M1 --output tmp.hex2 && hex2 --file /tmp/early/M2libc/x86/ELF-x86-debug.hex2 --file tmp.hex2 --output tmp --architecture x86 --base-address 0x8048000 --little-endian
+  blood-elf --little-endian --file tmp.M1 --output tmp-elf.M1 && M1 --file x86_defs.M1 --file /tmp/early/M2libc/x86/libc-core.M1 --file tmp-elf.M1 --little-endian --architecture x86 --file tmp.M1 --file tmp2.M1 --output tmp.hex2 && hex2 --file /tmp/early/M2libc/x86/ELF-x86-debug.hex2 --file tmp.hex2 --output tmp --architecture x86 --base-address 0x8048000 --little-endian
   ./tmp
   actual="$?"
 
@@ -91,5 +100,8 @@ assert 7 '{ int x=3; int y=5; *(&y-2+1)=7; return x; }'
 assert 5 '{ int x=3; return (&x+2)-&x+3; }'
 assert 8 '{ int x, y; x=3; y=5; return x+y; }'
 assert 8 '{ int x=3, y=5; return x+y; }'
+
+assert 3 '{ return ret3(); }'
+assert 5 '{ return ret5(); }'
 
 echo OK
