@@ -37,6 +37,24 @@ Token *skip(Token *tok, char *op);
 Token *tokenize(char *input);
 
 //
+// type.c
+//
+
+#define TY_INT 0
+#define TY_PTR 1
+
+struct Type {
+	int kind;
+	struct Type *base;
+};
+typedef struct Type Type;
+
+extern Type *ty_int;
+
+int is_integer(Type *ty);
+void initialize_types(void);
+
+//
 // parse.c
 //
 
@@ -73,6 +91,7 @@ typedef struct Obj Obj;
 struct Node {
 	int kind;          // Node kind
 	struct Node *next; // Next node
+	Type *ty;          // Type, e.g. int or pointer to int
 	Token *tok;        // Representative token
 
 	struct Node *lhs;  // Left-hand side
@@ -102,6 +121,12 @@ struct Function {
 typedef struct Function Function;
 
 Function *parse(Token *tok);
+
+//
+// type.c
+//
+
+void add_type(Node *node);
 
 //
 // codegen.c

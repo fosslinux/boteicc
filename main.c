@@ -5,6 +5,9 @@ int main(int argc, char **argv) {
 		error("invalid number of arguments\n");
 	}
 
+	// Initialisation
+	initialize_types();
+
 	Token *tok = tokenize(argv[1]);
 	Function *prog = parse(tok);
 

@@ -74,8 +74,9 @@ Obj *new_lvar(char *name) {
 }
 
 Node *compound_stmt(Token **rest, Token *tok);
-Node *expr(Token **rest, Token *tok);
+Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
+Node *expr(Token **rest, Token *tok);
 Node *assign(Token **rest, Token *tok);
 Node *equality(Token **rest, Token *tok);
 Node *relational(Token **rest, Token *tok);
@@ -154,6 +155,7 @@ Node *compound_stmt(Token **rest, Token *tok) {
 	while (!equal(tok, "}")) {
 		cur->next = stmt(&tok, tok);
 		cur = cur->next;
+		add_type(cur);
 	}
 
 	Node *node = new_node(ND_BLOCK, tok);
@@ -245,6 +247,69 @@ Node *relational(Token **rest, Token *tok) {
 	}
 }
 
+// In C, `+` operator is overloaded to perform pointer arithmetic.
+// If p is a pointer, p+n does not add n as usual, but adds sizeof(*p)*n to
+// the value of p. In effect this makes p+n point to the location n elements,
+// not bytes, ahead of p.
+// This function takes care of the scaling required.
+Node *new_add(Node *lhs, Node *rhs, Token *tok) {
+	add_type(lhs);
+	add_type(rhs);
+
+	// num + num
+	if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+		return new_binary(ND_ADD, lhs, rhs, tok);
+	}
+
+	// ptr + ptr
+	if (lhs->ty->base && rhs->ty->base) {
+		error_tok(tok, "invalid operands");
+	}
+
+	// Canonicalize `num + ptr` to `ptr + num`.
+	if (!lhs->ty->base && rhs->ty->base) {
+		Node *tmp = lhs;
+		lhs = rhs;
+		rhs = tmp;
+	}
+
+	// ptr + num
+	rhs = new_binary(ND_MUL, rhs, new_num(8, tok), tok);
+	return new_binary(ND_ADD, lhs, rhs, tok);
+}
+
+// Like `+`, `-` is overloaded for the pointer type.
+Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
+	add_type(lhs);
+	add_type(rhs);
+
+	// num - num
+	if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+		return new_binary(ND_SUB, lhs, rhs, tok);
+	}
+
+	// ptr - num
+	// TODO: M2-Planet bug where we cannot && these two ?????
+	if (lhs->ty->base) {
+		if (is_integer(rhs->ty)) {
+    		rhs = new_binary(ND_MUL, rhs, new_num(8, tok), tok);
+    		add_type(rhs);
+    		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
+    		node->ty = lhs->ty;
+    		return node;
+		}
+	}
+
+	// ptr - ptr, which returns how many elements are between the two.
+	if (lhs->ty->base && rhs->ty->base) {
+		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
+		node->ty = ty_int;
+		return new_binary(ND_DIV, node, new_num(8, tok), tok);
+	}
+
+	error_tok(tok, "invalid operands");
+}
+
 // add = mul ("+" mul | "-" mul)*
 Node *add(Token **rest, Token *tok) {
 	Node *node = mul(&tok, tok);
@@ -253,12 +318,12 @@ Node *add(Token **rest, Token *tok) {
 	while (1) {
 		start = tok;
 		if (equal(tok, "+")) {
-			node = new_binary(ND_ADD, node, mul(&tok, tok->next), start);
+			node = new_add(node, mul(&tok, tok->next), start);
 			continue;
 		}
 
 		if (equal(tok, "-")) {
-			node = new_binary(ND_SUB, node, mul(&tok, tok->next), start);
+			node = new_sub(node, mul(&tok, tok->next), start);
 			continue;
 		}
 
