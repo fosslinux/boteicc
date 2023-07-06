@@ -66,6 +66,8 @@ typedef struct Obj Obj;
 #define ND_BLOCK     14 // { ... }
 #define ND_IF        15 // "if"
 #define ND_FOR       16 // "for" or "while"
+#define ND_ADDR      17 // unary &
+#define ND_DEREF     18 // unary *
 
 // AST node type
 struct Node {

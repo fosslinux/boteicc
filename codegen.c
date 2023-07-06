@@ -2,6 +2,8 @@
 
 int depth;
 
+void gen_expr(Node *node);
+
 int counter = 1;
 int count(void) {
 	counter += 1;
@@ -37,10 +39,11 @@ void gen_addr(Node *node) {
 		fputs("lea_eax,[ebp+DWORD] %", stdout);
 		fputs(int2str(node->var->offset, 10, TRUE), stdout);
 		fputc('\n', stdout);
-		return;
+	} else if (node->kind == ND_DEREF) {
+		gen_expr(node->lhs);
+	} else {
+		error_tok(node->tok, "not an lvalue");
 	}
-
-	error_tok(node->tok, "not an lvalue");
 }
 
 void num_postfix(char *str, int c) {
@@ -66,6 +69,13 @@ void gen_expr(Node *node) {
 	} else if (node->kind == ND_VAR) {
 		gen_addr(node);
 		puts("mov_eax,[eax]");
+		return;
+	} else if (node->kind == ND_DEREF) {
+		gen_expr(node->lhs);
+		puts("mov_eax,[eax]");
+		return;
+	} else if (node->kind == ND_ADDR) {
+		gen_addr(node->lhs);
 		return;
 	} else if (node->kind == ND_ASSIGN) {
 		gen_addr(node->lhs);
