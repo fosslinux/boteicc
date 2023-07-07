@@ -41,8 +41,9 @@ Token *tokenize(char *input);
 // type.c
 //
 
-#define TY_INT 0
-#define TY_PTR 1
+#define TY_INT  0
+#define TY_PTR  1
+#define TY_FUNC 2
 
 struct Type {
 	int kind;
@@ -52,6 +53,9 @@ struct Type {
 
 	// Declaration
 	Token *name;
+
+	// Function
+	struct Type *return_ty;
 };
 typedef struct Type Type;
 
@@ -59,6 +63,7 @@ extern Type *ty_int;
 
 int is_integer(Type *ty);
 Type *pointer_to(Type *base);
+Type *func_type(Type *return_ty);
 void initialize_types(void);
 
 //
@@ -127,6 +132,8 @@ typedef struct Node Node;
 
 // Function
 struct Function {
+	struct Function *next;
+	char *name;
 	Node *body;
 	Obj *locals;
 	int stack_size;

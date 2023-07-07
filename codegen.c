@@ -2,6 +2,7 @@
 
 int depth;
 int stack_size = 0;
+Function *current_fn;
 
 void gen_expr(Node *node);
 
@@ -209,7 +210,7 @@ void gen_stmt(Node *node) {
 		return;
 	} else if (node->kind == ND_RETURN) {
 		gen_expr(node->lhs);
-		puts("jmp %BUILTIN_return");
+		str_postfix("jmp %BUILTIN_return_", current_fn->name);
 		return;
 	} else if (node->kind == ND_EXPR_STMT) {
 		gen_expr(node->lhs);
@@ -221,34 +222,42 @@ void gen_stmt(Node *node) {
 
 // Assign offsets to local variables.
 void assign_lvar_offsets(Function *prog) {
-	int offset = 0;
+	int offset;
+	Function *fn;
 	Obj *var;
-	for (var = prog->locals; var; var = var->next) {
-		offset += 8;
-		var->offset = -offset;
+	for (fn = prog; fn; fn = fn->next) {
+		offset = 0;
+		for (var = fn->locals; var; var = var->next) {
+			offset += 8;
+			var->offset = -offset;
+		}
+		fn->stack_size = align_to(offset, 16);
 	}
-	prog->stack_size = align_to(offset, 16);
 }
 
 void codegen(Function *prog) {
 	assign_lvar_offsets(prog);
 
-	puts(":FUNCTION_main");
+	Function *fn;
+	for (fn = prog; fn; fn = fn->next) {
+		current_fn = fn;
+		str_postfix(":FUNCTION_", fn->name);
 
-	// Prologue
-	puts("push_ebp");
-	puts("mov_ebp,esp");
-	expand_stack(prog->stack_size);
+		// Prologue
+		puts("push_ebp");
+		puts("mov_ebp,esp");
+		expand_stack(fn->stack_size);
 
-	gen_stmt(prog->body);
-	if (depth != 0) {
-		error("depth not 0 at end of statement");
+		gen_stmt(fn->body);
+		if (depth != 0) {
+			error("depth not 0 at end of function");
+		}
+
+		// Epilogue
+		str_postfix(":BUILTIN_return_", fn->name);
+		puts("mov_esp,ebp");
+		puts("pop_ebp");
+		puts("ret");
 	}
-
-	// Epilogue
-	puts(":BUILTIN_return");
-	puts("mov_esp,ebp");
-	puts("pop_ebp");
-	puts("ret");
 	puts(":ELF_data");
 }
