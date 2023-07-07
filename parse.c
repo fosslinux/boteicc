@@ -104,12 +104,35 @@ Type *declspec(Token **rest, Token *tok) {
 	return ty_int;
 }
 
-// type-suffix = ("(" func-params)?
+// type-suffix = ("(" func-params? ")")?
+// func-params = param ("," param)*
+// param       = declspec declarator
 Type *type_suffix(Token **rest, Token *tok, Type *ty) {
 	if (equal(tok, "(")) {
-		*rest = skip(tok->next, ")");
-		return func_type(ty);
+		tok = tok->next;
+
+		// The order params are added matters, it must be L to R.
+		Type *head = calloc(1, sizeof(Type));
+		Type *cur = head;
+
+		Type *basety;
+		Type *ty;
+		while (!equal(tok, ")")) {
+			if (cur != head) {
+				tok = skip(tok, ",");
+			}
+			basety = declspec(&tok, tok);
+			ty = declarator(&tok, tok, basety);
+			cur->next = copy_type(ty);
+			cur = cur->next;
+		}
+
+		ty = func_type(ty);
+		ty->params = head->next;
+		*rest = tok->next;
+		return ty;
 	}
+
 	*rest = tok;
 	return ty;
 }
@@ -521,6 +544,13 @@ Node *primary(Token **rest, Token *tok) {
 	error_tok(tok, "expected an expression");
 }
 
+void create_param_lvars(Type *param) {
+	if (param) {
+		create_param_lvars(param->next);
+		new_lvar(get_ident(param->name), param);
+	}
+}
+
 Function *function(Token **rest, Token *tok) {
 	Type *ty = declspec(&tok, tok);
 	ty = declarator(&tok, tok, ty);
@@ -529,6 +559,8 @@ Function *function(Token **rest, Token *tok) {
 
 	Function *fn = calloc(1, sizeof(Function));
 	fn->name = get_ident(ty->name);
+	create_param_lvars(ty->params);
+	fn->params = locals;
 
 	tok = skip(tok, "{");
 	fn->body = compound_stmt(rest, tok);

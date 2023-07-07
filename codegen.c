@@ -1,7 +1,6 @@
 #include "chibicc.h"
 
 int depth;
-int stack_size = 0;
 Function *current_fn;
 
 void gen_expr(Node *node);
@@ -32,7 +31,6 @@ void pop(char *arg) {
 
 void expand_stack(int size) {
 	num_postfix("sub_esp, %", size);
-	stack_size += size;
 }
 
 // Round up `n` to the nearest multiple of `align.`
@@ -88,19 +86,13 @@ void gen_expr(Node *node) {
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
 		// Arguments are pushed onto the stack in right to left order.
-
-		// Stack setup
-		push("ebp");
-		puts("mov_ebp,esp");
-
 		int narg = 0;
 		Node *arg;
 		for (arg = node->args; arg; arg = arg->next) {
 			narg += 1;
 		}
-		// GCC has standardized that stack passed to a function is 16-byte aligned.
-		int expand_size = align_to(8 * narg + stack_size, 16) - stack_size;
-		expand_stack(expand_size);
+
+		int nargs = narg;
 
 		int arg_counter = 0;
 		while (narg != 0) {
@@ -118,8 +110,7 @@ void gen_expr(Node *node) {
 		str_postfix("call %FUNCTION_", node->funcname);
 
 		// Stack cleanup
-		puts("mov_esp,ebp");
-		pop("ebp");
+		num_postfix("add_esp, %", nargs * 4);
 
 		return;
 	}
@@ -239,6 +230,8 @@ void codegen(Function *prog) {
 	assign_lvar_offsets(prog);
 
 	Function *fn;
+	int i;
+	Obj *var;
 	for (fn = prog; fn; fn = fn->next) {
 		current_fn = fn;
 		str_postfix(":FUNCTION_", fn->name);
@@ -248,6 +241,25 @@ void codegen(Function *prog) {
 		puts("mov_ebp,esp");
 		expand_stack(fn->stack_size);
 
+		// Save arguments to the stack.
+		// They are already on the stack, but not at the offset we expect them
+		// to be at.
+		// We start at i = 2 because two things have been pushed onto the stack;
+		// 1. return address by call
+		// 2. push_ebp above
+		i = 2;
+		for (var = fn->params; var; var = var->next) {
+			num_postfix("lea_eax,[ebp+DWORD] %", i * 4);
+			puts("mov_edx,eax");
+			str_postfix("lea_eax,[ebp+DWORD] %", int2str(var->offset, 10, TRUE));
+			puts("mov_ebx,eax");
+			puts("mov_eax,edx");
+			puts("mov_eax,[eax]");
+			puts("mov_[ebx],eax");
+			i += 1;
+		}
+
+		// Emit code
 		gen_stmt(fn->body);
 		if (depth != 0) {
 			error("depth not 0 at end of function");

@@ -45,6 +45,7 @@ Token *tokenize(char *input);
 #define TY_PTR  1
 #define TY_FUNC 2
 
+// XXX Ensure copy_type is updated when a field is added.
 struct Type {
 	int kind;
 
@@ -56,12 +57,15 @@ struct Type {
 
 	// Function
 	struct Type *return_ty;
+	struct Type *params;
+	struct Type *next;
 };
 typedef struct Type Type;
 
 extern Type *ty_int;
 
 int is_integer(Type *ty);
+Type *copy_type(Type *ty);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
 void initialize_types(void);
@@ -134,6 +138,8 @@ typedef struct Node Node;
 struct Function {
 	struct Function *next;
 	char *name;
+	Obj *params;
+
 	Node *body;
 	Obj *locals;
 	int stack_size;
