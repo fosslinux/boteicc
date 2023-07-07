@@ -51,6 +51,25 @@ void gen_addr(Node *node) {
 	}
 }
 
+// Load a value from an address in %eax.
+void load(Type *ty) {
+	if (ty->kind == TY_ARRAY) {
+		// If it is an array, do not attempt to load a value into the register,
+		// because in general, we cannot load an entire array into a register.
+		// The result of evaluations from arrays becomes the address of the
+		// array. This is the conversion from array => pointer to first element
+		// of array occurs.
+		return;
+	}
+	puts("mov_eax,[eax]");
+}
+
+// Store %eax to the address in the top of the stack.
+void store(void) {
+	pop("ebx");
+	puts("mov_[ebx],eax");
+}
+
 // Generate code for a given node.
 void gen_expr(Node *node) {
 	// Sideless
@@ -67,11 +86,11 @@ void gen_expr(Node *node) {
 		return;
 	} else if (node->kind == ND_VAR) {
 		gen_addr(node);
-		puts("mov_eax,[eax]");
+		load(node->ty);
 		return;
 	} else if (node->kind == ND_DEREF) {
 		gen_expr(node->lhs);
-		puts("mov_eax,[eax]");
+		load(node->ty);
 		return;
 	} else if (node->kind == ND_ADDR) {
 		gen_addr(node->lhs);
@@ -80,8 +99,7 @@ void gen_expr(Node *node) {
 		gen_addr(node->lhs);
 		push("eax");
 		gen_expr(node->rhs);
-		pop("ebx");
-		puts("mov_[ebx],eax");
+		store();
 		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
@@ -219,7 +237,7 @@ void assign_lvar_offsets(Function *prog) {
 	for (fn = prog; fn; fn = fn->next) {
 		offset = 0;
 		for (var = fn->locals; var; var = var->next) {
-			offset += 8;
+			offset += var->ty->size;
 			var->offset = -offset;
 		}
 		fn->stack_size = align_to(offset, 16);

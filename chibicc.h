@@ -33,6 +33,7 @@ void error(char *fmt);
 void error_at(char *loc, char *fmt);
 void error_tok(Token *tok, char *fmt);
 int equal(Token *tok, char *op);
+int get_number(Token *tok);
 Token *skip(Token *tok, char *op);
 int consume(Token **rest, Token *tok, char *str);
 Token *tokenize(char *input);
@@ -41,19 +42,31 @@ Token *tokenize(char *input);
 // type.c
 //
 
-#define TY_INT  0
-#define TY_PTR  1
-#define TY_FUNC 2
+#define TY_INT   0
+#define TY_PTR   1
+#define TY_FUNC  2
+#define TY_ARRAY 3
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {
 	int kind;
 
-	// Pointer
+	int size; // sizeof() value
+
+	// Pointer-to or array-of type. Same member used to represent the
+	// pointer/array duality in C.
+	//
+	// In many contexts where a pointer is expected, we examine this member
+	// instead of "kind" to determine whether a type is a pointer or not. That
+	// means in many contexts "array of T" is naturally handled as if it was a
+	// "pointer to T", as required by the C spec.
 	struct Type *base;
 
 	// Declaration
 	Token *name;
+
+	// Array
+	int array_len;
 
 	// Function
 	struct Type *return_ty;
@@ -68,6 +81,7 @@ int is_integer(Type *ty);
 Type *copy_type(Type *ty);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
+Type *array_of(Type *base, int size);
 void initialize_types(void);
 
 //

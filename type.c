@@ -5,6 +5,7 @@ Type *ty_int;
 void initialize_types(void) {
 	ty_int = calloc(1, sizeof(Type));
 	ty_int->kind = TY_INT;
+	ty_int->size = 8;
 }
 
 int is_integer(Type *ty) {
@@ -14,8 +15,10 @@ int is_integer(Type *ty) {
 Type *copy_type(Type *ty) {
 	Type *ret = calloc(1, sizeof(Type));
 	ret->kind = ty->kind;
+	ret->size = ty->size;
 	ret->base = ty->base;
 	ret->name = ty->name;
+	ret->array_len = ty->array_len;
 	ret->return_ty = ty->return_ty;
 	ret->params = ty->params;
 	ret->next = ty->next;
@@ -25,6 +28,7 @@ Type *copy_type(Type *ty) {
 Type *pointer_to(Type *base) {
 	Type *ty = calloc(1, sizeof(Type));
 	ty->kind = TY_PTR;
+	ty->size = 8;
 	ty->base = base;
 	return ty;
 }
@@ -33,6 +37,15 @@ Type *func_type(Type *return_ty) {
 	Type *ty = calloc(1, sizeof(Type));
 	ty->kind = TY_FUNC;
 	ty->return_ty = return_ty;
+	return ty;
+}
+
+Type *array_of(Type *base, int len) {
+	Type *ty = calloc(1, sizeof(Type));
+	ty->kind = TY_ARRAY;
+	ty->size = base->size * len;
+	ty->base = base;
+	ty->array_len = len;
 	return ty;
 }
 
@@ -65,8 +78,12 @@ void add_type(Node *node) {
 			node->kind == ND_SUB ||
 			node->kind == ND_MUL ||
 			node->kind == ND_DIV ||
-			node->kind == ND_NEG ||
-			node->kind == ND_ASSIGN) {
+			node->kind == ND_NEG) {
+		node->ty = node->lhs->ty;
+	} else if (node->kind == ND_ASSIGN) {
+		if (node->lhs->ty->kind == TY_ARRAY) {
+			error_tok(node->lhs->tok, "not an lvalue");
+		}
 		node->ty = node->lhs->ty;
 	} else if (node->kind == ND_EQ ||
 			node->kind == ND_NE ||
@@ -79,9 +96,13 @@ void add_type(Node *node) {
 		node->ty = node->var->ty;
 		return;
 	} else if (node->kind == ND_ADDR) {
-		node->ty = pointer_to(node->lhs->ty);
+		if (node->lhs->ty->kind == TY_ARRAY) {
+			node->ty = pointer_to(node->lhs->ty->base);
+		} else {
+			node->ty = pointer_to(node->lhs->ty);
+		}
 	} else if (node->kind == ND_DEREF) {
-		if (node->lhs->ty->kind != TY_PTR) {
+		if (!node->lhs->ty->base) {
 			error_tok(node->tok, "invalid pointer dereference");
 		}
 		node->ty = node->lhs->ty->base;
