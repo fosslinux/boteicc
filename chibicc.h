@@ -118,6 +118,7 @@ struct Node {
 
 	// Function call
 	char *funcname;
+	struct Node *args;
 
 	Obj *var;          // Used if kind == ND_VAR
 	int val;           // Used if kind == ND_NUM
@@ -158,3 +159,5 @@ int startswith(char *p, char *q);
 char *string_slice(char *original, char *end);
 char *integer_end(char *s);
 char *uint2str(int i);
+void str_postfix(char *str, char *second);
+void num_postfix(char *str, int c);

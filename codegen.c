@@ -1,6 +1,7 @@
 #include "chibicc.h"
 
 int depth;
+int stack_size = 0;
 
 void gen_expr(Node *node);
 
@@ -10,20 +11,27 @@ int count(void) {
 	return counter;
 }
 
-void push(void) {
-	puts("push_eax");
+void push(char *arg) {
+	if (strcmp(arg, "eax") || strcmp(arg, "ebx") || strcmp(arg, "ebp") || strcmp(arg, "edi")) {
+		str_postfix("push_", arg);
+	} else {
+		error("invalid push");
+	}
 	depth += 1;
 }
 
 void pop(char *arg) {
 	if (strcmp(arg, "eax") || strcmp(arg, "ebx") || strcmp(arg, "ebp") || strcmp(arg, "edi")) {
-		fputs("pop_", stdout);
-		fputs(arg, stdout);
-		fputc('\n', stdout);
+		str_postfix("pop_", arg);
 	} else {
 		error("invalid pop");
 	}
 	depth -= 1;
+}
+
+void expand_stack(int size) {
+	num_postfix("sub_esp, %", size);
+	stack_size += size;
 }
 
 // Round up `n` to the nearest multiple of `align.`
@@ -36,24 +44,12 @@ int align_to(int n, int align) {
 // It is an error if the given node does not reside in memory.
 void gen_addr(Node *node) {
 	if (node->kind == ND_VAR) {
-		fputs("lea_eax,[ebp+DWORD] %", stdout);
-		fputs(int2str(node->var->offset, 10, TRUE), stdout);
-		fputc('\n', stdout);
+		str_postfix("lea_eax,[ebp+DWORD] %", int2str(node->var->offset, 10, TRUE));
 	} else if (node->kind == ND_DEREF) {
 		gen_expr(node->lhs);
 	} else {
 		error_tok(node->tok, "not an lvalue");
 	}
-}
-
-void str_postfix(char *str, char *second) {
-	fputs(str, stdout);
-	fputs(second, stdout);
-	fputc('\n', stdout);
-}
-
-void num_postfix(char *str, int c) {
-	str_postfix(str, uint2str(c));
 }
 
 // Generate code for a given node.
@@ -83,20 +79,53 @@ void gen_expr(Node *node) {
 		return;
 	} else if (node->kind == ND_ASSIGN) {
 		gen_addr(node->lhs);
-		push();
+		push("eax");
 		gen_expr(node->rhs);
 		pop("ebx");
 		puts("mov_[ebx],eax");
 		return;
 	} else if (node->kind == ND_FUNCALL) {
+		// We are using the cdecl calling convention.
+		// Arguments are pushed onto the stack in right to left order.
+
+		// Stack setup
+		push("ebp");
+		puts("mov_ebp,esp");
+
+		int narg = 0;
+		Node *arg;
+		for (arg = node->args; arg; arg = arg->next) {
+			narg += 1;
+		}
+		// GCC has standardized that stack passed to a function is 16-byte aligned.
+		int expand_size = align_to(8 * narg + stack_size, 16) - stack_size;
+		expand_stack(expand_size);
+
+		int arg_counter = 0;
+		while (narg != 0) {
+			for (arg = node->args; arg_counter < narg - 1; arg = arg->next) {
+				arg_counter += 1;
+			}
+			gen_expr(arg);
+			puts("push_eax");
+
+			narg -= 1;
+			arg_counter = 0;
+		}
+
 		puts("mov_eax, %0");
 		str_postfix("call %FUNCTION_", node->funcname);
+
+		// Stack cleanup
+		puts("mov_esp,ebp");
+		pop("ebp");
+
 		return;
 	}
 
 	// Binary
 	gen_expr(node->rhs);
-	push();
+	push("eax");
 	gen_expr(node->lhs);
 
 	if (node->kind == ND_ADD) {
@@ -209,7 +238,7 @@ void codegen(Function *prog) {
 	// Prologue
 	puts("push_ebp");
 	puts("mov_ebp,esp");
-	num_postfix("sub_esp, %", prog->stack_size);
+	expand_stack(prog->stack_size);
 
 	gen_stmt(prog->body);
 	if (depth != 0) {
@@ -219,7 +248,7 @@ void codegen(Function *prog) {
 	// Epilogue
 	puts(":BUILTIN_return");
 	puts("mov_esp,ebp");
-	pop("ebp");
+	puts("pop_ebp");
 	puts("ret");
 	puts(":ELF_data");
 }

@@ -451,8 +451,32 @@ Node *unary(Token **rest, Token *tok) {
 	return primary(rest, tok);
 }
 
-// primary = "(" expr ")" | ident args? | num
-// args = "(" ")"
+// funcall = ident "(" (assign ("," assign)*)? ")"
+Node *funcall(Token **rest, Token *tok) {
+	Token *start = tok;
+	tok = tok->next->next;
+
+	Node *head = calloc(1, sizeof(Node));
+	Node *cur = head;
+
+	while (!equal(tok, ")")) {
+		if (cur != head) {
+			tok = skip(tok, ",");
+		}
+		cur->next = assign(&tok, tok);
+		cur = cur->next;
+	}
+
+	*rest = skip(tok, ")");
+
+	Node *node = new_node(ND_FUNCALL, start);
+	node->funcname = calloc(start->len, sizeof(char));
+	strncpy(node->funcname, start->loc, start->len);
+	node->args = head->next;
+	return node;
+}
+
+// primary = "(" expr ")" | ident func-args? | num
 Node *primary(Token **rest, Token *tok) {
 	if (equal(tok, "(")) {
 		Node *node = expr(&tok, tok->next);
@@ -463,11 +487,7 @@ Node *primary(Token **rest, Token *tok) {
 	if (tok->kind == TK_IDENT) {
 		// Function call
 		if (equal(tok->next, "(")) {
-			Node *node = new_node(ND_FUNCALL, tok);
-			node->funcname = calloc(tok->len, sizeof(char));
-			strncpy(node->funcname, tok->loc, tok->len);
-			*rest = skip(tok->next->next, ")");
-			return node;
+			return funcall(rest, tok);
 		}
 
 		// Variable

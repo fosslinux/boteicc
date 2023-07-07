@@ -6,6 +6,40 @@ ret
 :FUNCTION_ret5
 mov_eax, %5
 ret
+:FUNCTION_add
+lea_eax,[esp+DWORD] %4
+mov_eax,[eax]
+lea_ebx,[esp+DWORD] %8
+mov_ebx,[ebx]
+add_eax,ebx
+ret
+:FUNCTION_sub
+lea_ebx,[esp+DWORD] %4
+mov_ebx,[ebx]
+lea_eax,[esp+DWORD] %8
+mov_eax,[eax]
+sub_ebx,eax
+mov_eax,ebx
+ret
+:FUNCTION_add6
+lea_eax,[esp+DWORD] %4
+mov_eax,[eax]
+lea_ebx,[esp+DWORD] %8
+mov_ebx,[ebx]
+add_eax,ebx
+lea_ebx,[esp+DWORD] %12
+mov_ebx,[ebx]
+add_eax,ebx
+lea_ebx,[esp+DWORD] %16
+mov_ebx,[ebx]
+add_eax,ebx
+lea_ebx,[esp+DWORD] %20
+mov_ebx,[ebx]
+add_eax,ebx
+lea_ebx,[esp+DWORD] %24
+mov_ebx,[ebx]
+add_eax,ebx
+ret
 EOF
 
 assert() {
@@ -13,7 +47,7 @@ assert() {
   input="$2"
 
   ./chibicc "$input" > tmp.M1 || exit
-  blood-elf --little-endian --file tmp.M1 --output tmp-elf.M1 && M1 --file x86_defs.M1 --file /tmp/early/M2libc/x86/libc-core.M1 --file tmp-elf.M1 --little-endian --architecture x86 --file tmp.M1 --file tmp2.M1 --output tmp.hex2 && hex2 --file /tmp/early/M2libc/x86/ELF-x86-debug.hex2 --file tmp.hex2 --output tmp --architecture x86 --base-address 0x8048000 --little-endian
+  blood-elf --little-endian --file tmp.M1 --output tmp-elf.M1 && M1 --file x86_defs.M1 --file /tmp/early/M2libc/x86/libc-core.M1 --file tmp-elf.M1 --little-endian --architecture x86 --file tmp2.M1 --file tmp.M1 --output tmp.hex2 && hex2 --file /tmp/early/M2libc/x86/ELF-x86-debug.hex2 --file tmp.hex2 --output tmp --architecture x86 --base-address 0x8048000 --little-endian
   ./tmp
   actual="$?"
 
@@ -103,5 +137,10 @@ assert 8 '{ int x=3, y=5; return x+y; }'
 
 assert 3 '{ return ret3(); }'
 assert 5 '{ return ret5(); }'
+assert 8 '{ return add(3, 5); }'
+assert 2 '{ return sub(5, 3); }'
+assert 21 '{ return add6(1,2,3,4,5,6); }'
+assert 66 '{ return add6(1,2,add6(3,4,5,6,7,8),9,10,11); }'
+assert 136 '{ return add6(1,2,add6(3,add6(4,5,6,7,8,9),10,11,12,13),14,15,16); }'
 
 echo OK
