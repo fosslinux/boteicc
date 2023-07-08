@@ -95,8 +95,9 @@ Node *equality(Token **rest, Token *tok);
 Node *relational(Token **rest, Token *tok);
 Node *add(Token **rest, Token *tok);
 Node *mul(Token **rest, Token *tok);
-Node *primary(Token **rest, Token *tok);
+Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
+Node *primary(Token **rest, Token *tok);
 
 // declspec = "int"
 Type *declspec(Token **rest, Token *tok) {
@@ -367,6 +368,11 @@ Node *relational(Token **rest, Token *tok) {
 	}
 }
 
+// TODO: M2-Planet bug where we cannot && some of the conditions below.
+// I can't be bothered to figure out which ones do it when, because it only
+// occurs under weird conditions.
+// So in these two functions we don't use &&.
+
 // In C, `+` operator is overloaded to perform pointer arithmetic.
 // If p is a pointer, p+n does not add n as usual, but adds sizeof(*p)*n to
 // the value of p. In effect this makes p+n point to the location n elements,
@@ -377,20 +383,26 @@ Node *new_add(Node *lhs, Node *rhs, Token *tok) {
 	add_type(rhs);
 
 	// num + num
-	if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
-		return new_binary(ND_ADD, lhs, rhs, tok);
+	if (is_integer(lhs->ty)) {
+		if (is_integer(rhs->ty)) {
+			return new_binary(ND_ADD, lhs, rhs, tok);
+		}
 	}
 
 	// ptr + ptr
-	if (lhs->ty->base && rhs->ty->base) {
-		error_tok(tok, "invalid operands");
+	if (lhs->ty->base) {
+		if (rhs->ty->base) {
+			error_tok(tok, "invalid operands");
+		}
 	}
 
 	// Canonicalize `num + ptr` to `ptr + num`.
-	if (!lhs->ty->base && rhs->ty->base) {
-		Node *tmp = lhs;
-		lhs = rhs;
-		rhs = tmp;
+	if (!lhs->ty->base) {
+		if (rhs->ty->base) {
+			Node *tmp = lhs;
+			lhs = rhs;
+			rhs = tmp;
+		}
 	}
 
 	// ptr + num
@@ -404,12 +416,13 @@ Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
 	add_type(rhs);
 
 	// num - num
-	if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
-		return new_binary(ND_SUB, lhs, rhs, tok);
+	if (is_integer(lhs->ty)) {
+		if (is_integer(rhs->ty)) {
+			return new_binary(ND_SUB, lhs, rhs, tok);
+		}
 	}
 
 	// ptr - num
-	// TODO: M2-Planet bug where we cannot && these two ?????
 	if (lhs->ty->base) {
 		if (is_integer(rhs->ty)) {
     		rhs = new_binary(ND_MUL, rhs, new_num(lhs->ty->base->size, tok), tok);
@@ -421,10 +434,12 @@ Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
 	}
 
 	// ptr - ptr, which returns how many elements are between the two.
-	if (lhs->ty->base && rhs->ty->base) {
-		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
-		node->ty = ty_int;
-		return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
+	if (lhs->ty->base) {
+		if (rhs->ty->base) {
+			Node *node = new_binary(ND_SUB, lhs, rhs, tok);
+			node->ty = ty_int;
+			return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
+		}
 	}
 
 	error_tok(tok, "invalid operands");
@@ -475,7 +490,7 @@ Node *mul(Token **rest, Token *tok) {
 }
 
 // unary = ("+" | "-" | "*" | "&" ) unary
-//       | primary
+//       | postfix
 Node *unary(Token **rest, Token *tok) {
 	if (equal(tok, "+")) {
 		return unary(rest, tok->next);
@@ -493,7 +508,25 @@ Node *unary(Token **rest, Token *tok) {
 		return new_unary(ND_DEREF, unary(rest, tok->next), tok);
 	}
 
-	return primary(rest, tok);
+	return postfix(rest, tok);
+}
+
+// postfix = primary ("[" expr "]")*
+Node *postfix(Token **rest, Token *tok) {
+	Node *node = primary(&tok, tok);
+
+	Token *start;
+	Node *idx;
+	while (equal(tok, "[")) {
+		// x[y] => *(x+y)
+		start = tok;
+		idx = expr(&tok, tok->next);
+		tok = skip(tok, "]");
+		node = new_unary(ND_DEREF, new_add(node, idx, start), start);
+	}
+
+	*rest = tok;
+	return node;
 }
 
 // funcall = ident "(" (assign ("," assign)*)? ")"
