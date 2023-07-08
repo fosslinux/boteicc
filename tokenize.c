@@ -108,18 +108,64 @@ int is_keyword(Token *tok) {
 	return FALSE;
 }
 
-Token *read_string_literal(char *start) {
-	char *p = start + 1;
+int read_escaped_char(char *p) {
+	// Escape sequences are generally defined using themselves here.
+	if (*p == 'a') {
+		return '\a';
+	} else if (*p == 'b') {
+		return '\b';
+	} else if (*p == 't') {
+		return '\t';
+	} else if (*p == 'n') {
+		return '\n';
+	} else if (*p == 'v') {
+		return '\v';
+	} else if (*p == 'f') {
+		return '\f';
+	} else if (*p == 'r') {
+		return '\r';
+	} else if (*p == 'e') {
+		return 27; // ASCII escape character [GNU]
+	} else {
+		return *p;
+	}
+}
+
+// Find a closing double-quote.
+char *string_literal_end(char *p) {
+	char *start = p;
 	for (p; *p != '"'; p += 1) {
 		if (*p == '\n' || *p == '\0') {
 			error_at(start, "unclosed string literal");
 		}
+		if (*p == '\\') {
+			p += 1;
+		}
+	}
+	return p;
+}
+
+Token *read_string_literal(char *start) {
+	char *end = string_literal_end(start + 1);
+	char *buf = calloc(1, end - start);
+	int len = 0;
+
+	char *p;
+	for (p = start + 1; p < end; p) {
+		if (*p == '\\') {
+			buf[len] = read_escaped_char(p + 1);
+			len += 1;
+			p += 2;
+		} else {
+			buf[len] = *p;
+			len += 1;
+			p += 1;
+		}
 	}
 
-	Token *tok = new_token(TK_STR, start, p + 1);
-	tok->ty = array_of(ty_char, p - start);
-	tok->str = calloc(p - start - 1, sizeof(char));
-	strncpy(tok->str, start + 1, p - start - 1);
+	Token *tok = new_token(TK_STR, start, end + 1);
+	tok->ty = array_of(ty_char, len + 1);
+	tok->str = buf;
 	return tok;
 }
 
