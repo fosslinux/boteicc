@@ -1,7 +1,7 @@
 #include "chibicc.h"
 
 int depth;
-Function *current_fn;
+Obj *current_fn;
 
 void gen_expr(Node *node);
 
@@ -230,11 +230,15 @@ void gen_stmt(Node *node) {
 }
 
 // Assign offsets to local variables.
-void assign_lvar_offsets(Function *prog) {
+void assign_lvar_offsets(Obj *prog) {
 	int offset;
-	Function *fn;
+	Obj *fn;
 	Obj *var;
 	for (fn = prog; fn; fn = fn->next) {
+		if (!fn->is_function) {
+			continue;
+		}
+
 		offset = 0;
 		for (var = fn->locals; var; var = var->next) {
 			offset += var->ty->size;
@@ -244,13 +248,17 @@ void assign_lvar_offsets(Function *prog) {
 	}
 }
 
-void codegen(Function *prog) {
+void codegen(Obj *prog) {
 	assign_lvar_offsets(prog);
 
-	Function *fn;
+	Obj *fn;
 	int i;
 	Obj *var;
 	for (fn = prog; fn; fn = fn->next) {
+		if (!fn->is_function) {
+			continue;
+		}
+
 		current_fn = fn;
 		str_postfix(":FUNCTION_", fn->name);
 

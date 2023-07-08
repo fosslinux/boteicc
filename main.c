@@ -8,8 +8,9 @@ int main(int argc, char **argv) {
 	// Initialisation
 	initialize_types();
 
+	// Tokenize, parse.
 	Token *tok = tokenize(argv[1]);
-	Function *prog = parse(tok);
+	Obj *prog = parse(tok);
 
 	// Traverse the AST, emitting assembly.
 	codegen(prog);

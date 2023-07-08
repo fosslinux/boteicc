@@ -16,9 +16,10 @@
 
 #include "chibicc.h"
 
-// All local variable instances created during parsing are accumulated
+// All variable instances created during parsing are accumulated
 // to this list.
 Obj *locals;
+Obj *globals;
 
 // Find a local variable by name.
 Obj *find_var(Token *tok) {
@@ -65,12 +66,25 @@ Node *new_var_node(Obj *var, Token *tok) {
 	return node;
 }
 
-Obj *new_lvar(char *name, Type *ty) {
+Obj *new_var(char *name, Type *ty) {
 	Obj *var = calloc(1, sizeof(Obj));
 	var->name = name;
 	var->ty = ty;
+	return var;
+}
+
+Obj *new_lvar(char *name, Type *ty) {
+	Obj *var = new_var(name, ty);
+	var->is_local = TRUE;
 	var->next = locals;
 	locals = var;
+	return var;
+}
+
+Obj *new_gvar(char *name, Type *ty) {
+	Obj *var = new_var(name, ty);
+	var->next = globals;
+	globals = var;
 	return var;
 }
 
@@ -600,31 +614,30 @@ void create_param_lvars(Type *param) {
 	}
 }
 
-Function *function(Token **rest, Token *tok) {
-	Type *ty = declspec(&tok, tok);
-	ty = declarator(&tok, tok, ty);
+Token *function(Token *tok, Type *basety) {
+	Type *ty = declarator(&tok, tok, basety);
+
+	Obj *fn = new_gvar(get_ident(ty->name), ty);
+	fn->is_function = TRUE;
 
 	locals = NULL;
-
-	Function *fn = calloc(1, sizeof(Function));
-	fn->name = get_ident(ty->name);
 	create_param_lvars(ty->params);
 	fn->params = locals;
 
 	tok = skip(tok, "{");
-	fn->body = compound_stmt(rest, tok);
+	fn->body = compound_stmt(&tok, tok);
 	fn->locals = locals;
-	return fn;
+	return tok;
 }
 
-// program = function-definition*
-Function *parse(Token *tok) {
-	Function *head = calloc(1, sizeof(Function));
-	Function *cur = head;
+// program = (function-definition | global-variable)*
+Obj *parse(Token *tok) {
+	globals = NULL;
 
+	Type *basety;
 	while (tok->kind != TK_EOF) {
-		cur->next = function(&tok, tok);
-		cur = cur->next;
+		basety = declspec(&tok, tok);
+		tok = function(tok, basety);
 	}
-	return head->next;
+	return globals;
 }

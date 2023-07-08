@@ -88,12 +88,24 @@ void initialize_types(void);
 // parse.c
 //
 
-// Local variable
+// Variable or function
 struct Obj {
 	struct Obj *next;
-	char *name; // Variable name
-	Type *ty;   // Type
+	char *name;   // Variable name
+	Type *ty;     // Type
+	int is_local; // local or global/function
+
+	// Local variable
 	int offset; // Offset from EBP
+
+	// Global variable or function
+	int is_function;
+
+	// Function
+	struct Obj *params;
+	void *body; // struct Node*
+	struct Obj *locals;
+	int stack_size;
 };
 typedef struct Obj Obj;
 
@@ -148,19 +160,7 @@ struct Node {
 };
 typedef struct Node Node;
 
-// Function
-struct Function {
-	struct Function *next;
-	char *name;
-	Obj *params;
-
-	Node *body;
-	Obj *locals;
-	int stack_size;
-};
-typedef struct Function Function;
-
-Function *parse(Token *tok);
+Obj *parse(Token *tok);
 
 //
 // type.c
@@ -172,7 +172,7 @@ void add_type(Node *node);
 // codegen.c
 //
 
-void codegen(Function *prog);
+void codegen(Obj *prog);
 
 //
 // util.c
