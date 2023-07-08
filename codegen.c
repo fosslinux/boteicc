@@ -43,7 +43,13 @@ int align_to(int n, int align) {
 // It is an error if the given node does not reside in memory.
 void gen_addr(Node *node) {
 	if (node->kind == ND_VAR) {
-		str_postfix("lea_eax,[ebp+DWORD] %", int2str(node->var->offset, 10, TRUE));
+		if (node->var->is_local) {
+			// Local variable
+			str_postfix("lea_eax,[ebp+DWORD] %", int2str(node->var->offset, 10, TRUE));
+		} else {
+			// Global variable
+			str_postfix("mov_eax, &GLOBAL_", node->var->name);
+		}
 	} else if (node->kind == ND_DEREF) {
 		gen_expr(node->lhs);
 	} else {
@@ -248,9 +254,25 @@ void assign_lvar_offsets(Obj *prog) {
 	}
 }
 
-void codegen(Obj *prog) {
-	assign_lvar_offsets(prog);
+void emit_data(Obj *prog) {
+	puts(":ELF_data");
 
+	Obj *var;
+	int zero_count;
+	for (var = prog; var; var = var->next) {
+		if (var->is_function) {
+			continue;
+		}
+		str_postfix(":GLOBAL_", var->name);
+		zero_count = var->ty->size;
+		for (zero_count; zero_count > 0; zero_count -= 1) {
+			fputs("NULL_BYTE ", stdout);
+		}
+		fputc('\n', stdout);
+	}
+}
+
+void emit_text(Obj *prog) {
 	Obj *fn;
 	int i;
 	Obj *var;
@@ -297,5 +319,10 @@ void codegen(Obj *prog) {
 		puts("pop_ebp");
 		puts("ret");
 	}
-	puts(":ELF_data");
+}
+
+void codegen(Obj *prog) {
+	assign_lvar_offsets(prog);
+	emit_data(prog);
+	emit_text(prog);
 }

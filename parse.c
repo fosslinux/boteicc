@@ -31,6 +31,15 @@ Obj *find_var(Token *tok) {
 			return var;
 		}
 	}
+
+	for (var = globals; var; var = var->next) {
+		// If the variable is actually the variable
+		if (strlen(var->name) == tok->len &&
+				!strncmp(tok->loc, var->name, tok->len)) {
+			return var;
+		}
+	}
+
 	return NULL;
 }
 
@@ -630,6 +639,35 @@ Token *function(Token *tok, Type *basety) {
 	return tok;
 }
 
+Token *global_variable(Token *tok, Type *basety) {
+	int first = TRUE;
+
+	Type *ty;
+	while (!consume(&tok, tok, ";")) {
+		if (!first) {
+			tok = skip(tok, ",");
+		}
+		first = FALSE;
+
+		ty = declarator(&tok, tok, basety);
+		new_gvar(get_ident(ty->name), ty);
+	}
+
+	return tok;
+}
+
+// Lookahead tokens, returning true if a given token is the start of a
+// function definition or declaration.
+int is_function(Token *tok) {
+	if (equal(tok, ";")) {
+		return FALSE;
+	}
+
+	Type *dummy = calloc(1, sizeof(Type));
+	Type *ty = declarator(&tok, tok, dummy);
+	return ty->kind == TY_FUNC;
+}
+
 // program = (function-definition | global-variable)*
 Obj *parse(Token *tok) {
 	globals = NULL;
@@ -637,7 +675,15 @@ Obj *parse(Token *tok) {
 	Type *basety;
 	while (tok->kind != TK_EOF) {
 		basety = declspec(&tok, tok);
-		tok = function(tok, basety);
+
+		// Function
+		if (is_function(tok)) {
+			tok = function(tok, basety);
+			continue;
+		}
+
+		// Global variable
+		tok = global_variable(tok, basety);
 	}
 	return globals;
 }
