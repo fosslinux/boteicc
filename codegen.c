@@ -271,14 +271,23 @@ void emit_data(Obj *prog) {
 
 	Obj *var;
 	int zero_count;
+	int i;
 	for (var = prog; var; var = var->next) {
 		if (var->is_function) {
 			continue;
 		}
 		str_postfix(":GLOBAL_", var->name);
 		zero_count = var->ty->size;
-		for (zero_count; zero_count > 0; zero_count -= 1) {
-			fputs("NULL_BYTE ", stdout);
+		if (var->init_data) {
+			for (i = 0; i < var->ty->size; i += 1) {
+				fputc('!', stdout);
+				fputs(uint2str(var->init_data[i]), stdout);
+				fputc(' ', stdout);
+			}
+		} else {
+			for (zero_count; zero_count > 0; zero_count -= 1) {
+				fputs("!0 ", stdout);
+			}
 		}
 		fputc('\n', stdout);
 	}

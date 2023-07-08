@@ -18,14 +18,17 @@
 #define TK_KEYWORD 2 // Keywords
 #define TK_NUM     3 // Numeric literals
 #define TK_EOF     4 // End-of-file markers
+#define TK_STR     5 // String literals
 
 // Token type
 struct Token {
-	int kind;    // Token kind
+	int kind;           // Token kind
     struct Token *next; // Next token
-	int val;     // If kind is TK_NUM, its value
-	char *loc;   // Token location
-	int len;     // Token length
+	int val;            // If kind is TK_NUM, its value
+	char *loc;          // Token location
+	int len;            // Token length
+	void *ty;           // Type *; Used if TK_STR
+	char *str;          // String literal contents including terminator
 };
 typedef struct Token Token;
 
@@ -102,6 +105,9 @@ struct Obj {
 
 	// Global variable or function
 	int is_function;
+
+	// Global variable
+	char *init_data;
 
 	// Function
 	struct Obj *params;
