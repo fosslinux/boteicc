@@ -100,7 +100,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "else") ||
 			equal(tok, "for") ||
 			equal(tok, "while") ||
-			equal(tok, "int")) {
+			equal(tok, "int") ||
+			equal(tok, "sizeof")) {
 		return TRUE;
 	}
 	return FALSE;
