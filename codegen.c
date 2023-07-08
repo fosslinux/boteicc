@@ -67,13 +67,25 @@ void load(Type *ty) {
 		// of array occurs.
 		return;
 	}
-	puts("mov_eax,[eax]");
+	if (ty->size == 1) {
+		puts("movsx_eax,BYTE_PTR_[eax]");
+	} else {
+		puts("mov_eax,[eax]");
+	}
+}
+
+void mov_with_size(Type *ty) {
+	if (ty->size == 1) {
+		puts("mov_[ebx],al");
+	} else {
+		puts("mov_[ebx],eax");
+	}
 }
 
 // Store %eax to the address in the top of the stack.
-void store(void) {
+void store(Type *ty) {
 	pop("ebx");
-	puts("mov_[ebx],eax");
+	mov_with_size(ty);
 }
 
 // Generate code for a given node.
@@ -105,7 +117,7 @@ void gen_expr(Node *node) {
 		gen_addr(node->lhs);
 		push("eax");
 		gen_expr(node->rhs);
-		store();
+		store(node->ty);
 		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
@@ -303,7 +315,7 @@ void emit_text(Obj *prog) {
 			puts("mov_ebx,eax");
 			puts("mov_eax,edx");
 			puts("mov_eax,[eax]");
-			puts("mov_[ebx],eax");
+			mov_with_size(var->ty);
 			i += 1;
 		}
 

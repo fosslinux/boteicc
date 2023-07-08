@@ -46,6 +46,7 @@ Token *tokenize(char *input);
 #define TY_PTR   1
 #define TY_FUNC  2
 #define TY_ARRAY 3
+#define TY_CHAR  4
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {
@@ -76,6 +77,7 @@ struct Type {
 typedef struct Type Type;
 
 extern Type *ty_int;
+extern Type *ty_char;
 
 int is_integer(Type *ty);
 Type *copy_type(Type *ty);

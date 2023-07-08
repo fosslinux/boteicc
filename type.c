@@ -1,15 +1,20 @@
 #include "chibicc.h"
 
 Type *ty_int;
+Type *ty_char;
 
 void initialize_types(void) {
 	ty_int = calloc(1, sizeof(Type));
 	ty_int->kind = TY_INT;
 	ty_int->size = 8;
+
+	ty_char = calloc(1, sizeof(Type));
+	ty_char->kind = TY_CHAR;
+	ty_char->size = 1;
 }
 
 int is_integer(Type *ty) {
-	return ty->kind == TY_INT;
+	return ty->kind == TY_CHAR || ty->kind == TY_INT;
 }
 
 Type *copy_type(Type *ty) {

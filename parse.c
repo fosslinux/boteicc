@@ -122,8 +122,13 @@ Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-// declspec = "int"
+// declspec = "char" | "int"
 Type *declspec(Token **rest, Token *tok) {
+	if (equal(tok, "char")) {
+		*rest = tok->next;
+		return ty_char;
+	}
+
 	*rest = skip(tok, "int");
 	return ty_int;
 }
@@ -225,6 +230,11 @@ Node *declaration(Token **rest, Token *tok) {
 	return node;
 }
 
+// Returns true if a given token represents a type.
+int is_typename(Token *tok) {
+	return equal(tok, "char") || equal(tok, "int");
+}
+
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
@@ -293,7 +303,7 @@ Node *compound_stmt(Token **rest, Token *tok) {
 	Node *head = calloc(1, sizeof(Node));
 	Node *cur = head;
 	while (!equal(tok, "}")) {
-		if (equal(tok, "int")) {
+		if (is_typename(tok)) {
 			cur->next = declaration(&tok, tok);
 		} else {
 			cur->next = stmt(&tok, tok);
