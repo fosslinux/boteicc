@@ -1,5 +1,23 @@
 #include "chibicc.h"
 
+// Output functions
+FILE *output_file;
+
+void str_postfix(char *str, char *second) {
+	fputs(str, output_file);
+	fputs(second, output_file);
+	fputc('\n', output_file);
+}
+
+void num_postfix(char *str, int c) {
+	str_postfix(str, uint2str(c));
+}
+
+void emit(char *str) {
+	fputs(str, output_file);
+	fputc('\n', output_file);
+}
+
 int depth;
 Obj *current_fn;
 
@@ -69,17 +87,17 @@ void load(Type *ty) {
 		return;
 	}
 	if (ty->size == 1) {
-		puts("movsx_eax,BYTE_PTR_[eax]");
+		emit("movsx_eax,BYTE_PTR_[eax]");
 	} else {
-		puts("mov_eax,[eax]");
+		emit("mov_eax,[eax]");
 	}
 }
 
 void mov_with_size(Type *ty) {
 	if (ty->size == 1) {
-		puts("mov_[ebx],al");
+		emit("mov_[ebx],al");
 	} else {
-		puts("mov_[ebx],eax");
+		emit("mov_[ebx],eax");
 	}
 }
 
@@ -98,9 +116,9 @@ void gen_expr(Node *node) {
 
 	if (node->kind == ND_NEG) {
 		gen_expr(node->lhs);
-		puts("mov_ebx, %0");
-		puts("sub_ebx,eax");
-		puts("mov_eax,ebx");
+		emit("mov_ebx, %0");
+		emit("sub_ebx,eax");
+		emit("mov_eax,ebx");
 		return;
 	} else if (node->kind == ND_VAR) {
 		gen_addr(node);
@@ -142,13 +160,13 @@ void gen_expr(Node *node) {
 				arg_counter += 1;
 			}
 			gen_expr(arg);
-			puts("push_eax");
+			emit("push_eax");
 
 			narg -= 1;
 			arg_counter = 0;
 		}
 
-		puts("mov_eax, %0");
+		emit("mov_eax, %0");
 		str_postfix("call %FUNCTION_", node->funcname);
 
 		// Stack cleanup
@@ -164,37 +182,37 @@ void gen_expr(Node *node) {
 
 	if (node->kind == ND_ADD) {
 		pop("ebx");
-		puts("add_eax,ebx");
+		emit("add_eax,ebx");
 		return;
 	} else if (node->kind == ND_SUB) {
-		puts("mov_ebx,eax");
+		emit("mov_ebx,eax");
 		pop("eax");
-		puts("sub_ebx,eax");
-		puts("mov_eax,ebx");
+		emit("sub_ebx,eax");
+		emit("mov_eax,ebx");
 		return;
 	} else if (node->kind == ND_MUL) {
 		pop("ebx");
-		puts("imul_ebx");
+		emit("imul_ebx");
 		return;
 	} else if (node->kind == ND_DIV) {
 		pop("ebx");
-		puts("idiv_ebx");
+		emit("idiv_ebx");
 		return;
 	} else if (node->kind == ND_EQ || node->kind == ND_NE ||
 			node->kind == ND_LT || node->kind == ND_LE) {
-		puts("mov_ebx,eax");
+		emit("mov_ebx,eax");
 		pop("eax");
-		puts("cmp");
+		emit("cmp");
 		if (node->kind == ND_EQ) {
-			puts("sete_al");
+			emit("sete_al");
 		} else if (node->kind == ND_NE) {
-			puts("setne_al");
+			emit("setne_al");
 		} else if (node->kind == ND_LT) {
-			puts("setl_al");
+			emit("setl_al");
 		} else if (node->kind == ND_LE) {
-			puts("setle_al");
+			emit("setle_al");
 		}
-		puts("movzx_eax,al");
+		emit("movzx_eax,al");
 		return;
 	}
 
@@ -205,8 +223,8 @@ void gen_stmt(Node *node) {
 	if (node->kind == ND_IF) {
 		int c = count();
 		gen_expr(node->cond);
-		puts("mov_ebx, %0");
-		puts("cmp");
+		emit("mov_ebx, %0");
+		emit("cmp");
 		num_postfix("je %IF_else_", c);
 		gen_stmt(node->then);
 		num_postfix("jmp %IF_end_", c);
@@ -224,8 +242,8 @@ void gen_stmt(Node *node) {
 		num_postfix(":FOR_begin_", c);
 		if (node->cond) {
 			gen_expr(node->cond);
-			puts("mov_ebx, %0");
-			puts("cmp");
+			emit("mov_ebx, %0");
+			emit("cmp");
 			num_postfix("je %FOR_end_", c);
 		}
 		gen_stmt(node->then);
@@ -273,7 +291,7 @@ void assign_lvar_offsets(Obj *prog) {
 }
 
 void emit_data(Obj *prog) {
-	puts(":ELF_data");
+	emit(":ELF_data");
 
 	Obj *var;
 	int zero_count;
@@ -286,16 +304,16 @@ void emit_data(Obj *prog) {
 		zero_count = var->ty->size;
 		if (var->init_data) {
 			for (i = 0; i < var->ty->size; i += 1) {
-				fputc('!', stdout);
-				fputs(uint2str(var->init_data[i]), stdout);
-				fputc(' ', stdout);
+				fputc('!', output_file);
+				fputs(uint2str(var->init_data[i]), output_file);
+				fputc(' ', output_file);
 			}
 		} else {
 			for (zero_count; zero_count > 0; zero_count -= 1) {
-				fputs("!0 ", stdout);
+				fputs("!0 ", output_file);
 			}
 		}
-		fputc('\n', stdout);
+		fputc('\n', output_file);
 	}
 }
 
@@ -312,8 +330,8 @@ void emit_text(Obj *prog) {
 		str_postfix(":FUNCTION_", fn->name);
 
 		// Prologue
-		puts("push_ebp");
-		puts("mov_ebp,esp");
+		emit("push_ebp");
+		emit("mov_ebp,esp");
 		expand_stack(fn->stack_size);
 
 		// Save arguments to the stack.
@@ -325,11 +343,11 @@ void emit_text(Obj *prog) {
 		i = 2;
 		for (var = fn->params; var; var = var->next) {
 			num_postfix("lea_eax,[ebp+DWORD] %", i * 4);
-			puts("mov_edx,eax");
+			emit("mov_edx,eax");
 			str_postfix("lea_eax,[ebp+DWORD] %", int2str(var->offset, 10, TRUE));
-			puts("mov_ebx,eax");
-			puts("mov_eax,edx");
-			puts("mov_eax,[eax]");
+			emit("mov_ebx,eax");
+			emit("mov_eax,edx");
+			emit("mov_eax,[eax]");
 			mov_with_size(var->ty);
 			i += 1;
 		}
@@ -342,13 +360,15 @@ void emit_text(Obj *prog) {
 
 		// Epilogue
 		str_postfix(":BUILTIN_return_", fn->name);
-		puts("mov_esp,ebp");
-		puts("pop_ebp");
-		puts("ret");
+		emit("mov_esp,ebp");
+		emit("pop_ebp");
+		emit("ret");
 	}
 }
 
-void codegen(Obj *prog) {
+void codegen(Obj *prog, FILE *out) {
+	output_file = out;
+
 	assign_lvar_offsets(prog);
 	emit_data(prog);
 	emit_text(prog);

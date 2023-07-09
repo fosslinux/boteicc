@@ -50,13 +50,3 @@ char *integer_end(char *s) {
 char *uint2str(int i) {
 	return int2str(i, 10, FALSE);
 }
-
-void str_postfix(char *str, char *second) {
-	fputs(str, stdout);
-	fputs(second, stdout);
-	fputc('\n', stdout);
-}
-
-void num_postfix(char *str, int c) {
-	str_postfix(str, uint2str(c));
-}
