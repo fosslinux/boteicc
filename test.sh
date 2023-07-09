@@ -66,7 +66,7 @@ assert() {
   expected="$1"
   input="$2"
 
-  ./chibicc "$input" > tmp.M1 || exit
+  echo "$input" | ./chibicc - > tmp.M1 || exit
   blood-elf --little-endian --file tmp.M1 --output tmp-elf.M1 && M1 --file x86_defs.M1 --file /tmp/early/M2libc/x86/libc-core.M1 --file tmp-elf.M1 --little-endian --architecture x86 --file tmp2.M1 --file tmp.M1 --output tmp.hex2 && hex2 --file /tmp/early/M2libc/x86/ELF-x86-debug.hex2 --file tmp.hex2 --output tmp --architecture x86 --base-address 0x8048000 --little-endian
   ./tmp
   actual="$?"

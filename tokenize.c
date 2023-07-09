@@ -2,6 +2,7 @@
 
 // Input string
 char *current_input;
+char *current_filename;
 
 // Reports an error and exit.
 void error(char *fmt) {
@@ -10,12 +11,46 @@ void error(char *fmt) {
 	exit(1);
 }
 
-// Reports an error location and exists.
+// Reports an error message in the following format and exits.
+//
+// foo.c:10: x = y + 1;
+//               ^ error message
 void error_at(char *loc, char *fmt) {
-	int pos = loc - current_input;
-	fputs(current_input, stderr);
-	fputc('\n', stderr);
+	// Find a line contianing `loc`.
+	char *line = loc;
+	while (current_input < line && line[-1] != '\n') {
+		line -= 1;
+	}
+
+	char *end = loc;
+	while (*end != '\n') {
+		end += 1;
+	}
+
+	// Get a line number.
+	int line_no = 1;
+	char *p;
+	for (p = current_input; p < line; p += 1) {
+		if (*p == '\n') {
+			line_no += 1;
+		}
+	}
+
+	// Print the line.
+	fputs(current_filename, stderr);
+	fputc(':', stderr);
+	fputs(uint2str(line_no), stderr);
+	fputs(": ", stderr);
 	int i;
+	for (i = 0; i < end - line; i += 1) {
+		fputc(line[i], stderr);
+	}
+	fputc('\n', stderr);
+
+	// Show the error message.
+	int indent = strlen(current_filename) + strlen(uint2str(line_no)) + 3;
+	int pos = loc - line + indent;
+
 	for (i = 0; i < pos; i += 1) {
 		fputc(' ', stderr);
 	}
@@ -220,7 +255,8 @@ void convert_keywords(Token *tok) {
 }
 
 // Tokenize a given string and return new tokens.
-Token *tokenize(char *p) {
+Token *tokenize(char *filename, char *p) {
+	current_filename = filename;
 	current_input = p;
 	Token *head = calloc(1, sizeof(Token));
 	Token *cur = head;
@@ -281,4 +317,48 @@ Token *tokenize(char *p) {
 	cur = cur->next;
 	convert_keywords(head->next);
 	return head->next;
+}
+
+// Returns the contents of a given file.
+char *read_file(char *path) {
+	FILE *fp;
+
+	if (strcmp(path, "-") == 0) {
+		// By convention, "-" == stdin.
+		fp = stdin;
+	} else {
+		fp = fopen(path, "r");
+		if (!fp) {
+			char *msg = calloc(MAX_STRING, sizeof(char));
+			strcpy(msg, "cannot open ");
+			strcat(msg, path);
+			error(msg);
+		}
+	}
+
+	int length = MAX_STRING;
+	char *buf = calloc(length, sizeof(char));
+	char *oldbuf;
+	int count = 0;
+	char c = fgetc(fp);
+	while (c != EOF) {
+		buf[count] = c;
+		c = fgetc(fp);
+		count += 1;
+		if (count == length) {
+			oldbuf = buf;
+			length += MAX_STRING;
+			buf = calloc(length, sizeof(char));
+			strcpy(buf, oldbuf);
+		}
+	}
+
+	if (fp != stdin) {
+		fclose(fp);
+	}
+	return buf;
+}
+
+Token *tokenize_file(char *path) {
+	return tokenize(path, read_file(path));
 }

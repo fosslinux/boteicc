@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 	initialize_types();
 
 	// Tokenize, parse.
-	Token *tok = tokenize(argv[1]);
+	Token *tok = tokenize_file(argv[1]);
 	Obj *prog = parse(tok);
 
 	// Traverse the AST, emitting assembly.

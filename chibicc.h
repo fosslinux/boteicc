@@ -39,7 +39,7 @@ int equal(Token *tok, char *op);
 int get_number(Token *tok);
 Token *skip(Token *tok, char *op);
 int consume(Token **rest, Token *tok, char *str);
-Token *tokenize(char *input);
+Token *tokenize_file(char *filename);
 
 //
 // type.c
