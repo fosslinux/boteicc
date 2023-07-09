@@ -2,12 +2,17 @@
 
 // isadigit
 int isadigit(char c) {
-	return ('0' <= c && c <= '9');
+	return '0' <= c && c <= '9';
+}
+
+// isxdigit
+int isaxdigit(char c) {
+	return isadigit(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F');
 }
 
 // isagraph
 int isagraph(char c) {
-	return (c >= 32 && c <= 126);
+	return c >= 32 && c <= 126;
 }
 
 // isaalpha
@@ -17,7 +22,7 @@ int isaalpha(char c) {
 
 // isapunct
 int isapunct(char c) {
-	return (isagraph(c) && !(isaalpha(c) || isadigit(c)));
+	return isagraph(c) && !(isaalpha(c) || isadigit(c));
 }
 
 // startswith

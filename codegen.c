@@ -4,6 +4,7 @@ int depth;
 Obj *current_fn;
 
 void gen_expr(Node *node);
+void gen_stmt(Node *node);
 
 int counter = 1;
 int count(void) {
@@ -90,7 +91,6 @@ void store(Type *ty) {
 
 // Generate code for a given node.
 void gen_expr(Node *node) {
-	// Sideless
 	if (node->kind == ND_NUM) {
 		num_postfix("mov_eax, %", node->val);
 		return;
@@ -118,6 +118,12 @@ void gen_expr(Node *node) {
 		push("eax");
 		gen_expr(node->rhs);
 		store(node->ty);
+		return;
+	} else if (node->kind == ND_STMT_EXPR) {
+		Node *n;
+		for (n = node->body; n; n = n->next) {
+			gen_stmt(n);
+		}
 		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.

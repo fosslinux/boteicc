@@ -138,6 +138,7 @@ typedef struct Obj Obj;
 #define ND_ADDR      17 // unary &
 #define ND_DEREF     18 // unary *
 #define ND_FUNCALL   19 // Function call
+#define ND_STMT_EXPR 20 // Statement expression [GNU]
 
 // AST node type
 struct Node {
@@ -156,7 +157,7 @@ struct Node {
 	struct Node *init;
 	struct Node *inc;
 
-	// Block
+	// Block or statement expression
 	struct Node *body;
 
 	// Function call
@@ -187,6 +188,7 @@ void codegen(Obj *prog);
 //
 
 int isadigit(char c);
+int isaxdigit(char c);
 int isagraph(char c);
 int isaalpha(char c);
 int isapunct(char c);

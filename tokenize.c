@@ -80,6 +80,16 @@ int is_ident2(char c) {
 	return is_ident1(c) || isadigit(c);
 }
 
+int from_hex(char c) {
+	if ('0' <= c && c <= '9') {
+		return c - '0';
+	}
+	if ('a' <= c && c <= 'f') {
+		return c - 'a' + 10;
+	}
+	return c - 'A' + 10;
+}
+
 // Read a punctuator toekn from p and return its length.
 int read_punct(char *p) {
 	if (startswith(p, "==") || startswith(p, "!=") ||
@@ -108,8 +118,40 @@ int is_keyword(Token *tok) {
 	return FALSE;
 }
 
-int read_escaped_char(char *p) {
+int read_escaped_char(char **new_pos, char *p) {
+	if ('0' <= *p && *p <= '7') {
+		// Read an octal number.
+		int c = *p - '0';
+		p += 1;
+		if ('0' <= *p && *p <= '7') {
+			c = (c << 3) + (*p - '0');
+			p += 1;
+			if ('0' <= *p && *p <= '7') {
+				c = (c << 3) + (*p - '0');
+				p += 1;
+			}
+		}
+		*new_pos = p;
+		return c;
+	}
+
+	if (*p == 'x') {
+		// Read a hexadecimal number.
+		p += 1;
+		if (!isaxdigit(*p)) {
+			error_at(p, "invalid hex escape sequences");
+		}
+
+		int c = 0;
+		for (p; isaxdigit(*p); p += 1) {
+			c = (c << 4) + from_hex(*p);
+		}
+		*new_pos = p;
+		return c;
+	}
+
 	// Escape sequences are generally defined using themselves here.
+	*new_pos = p + 1;
 	if (*p == 'a') {
 		return '\a';
 	} else if (*p == 'b') {
@@ -153,9 +195,8 @@ Token *read_string_literal(char *start) {
 	char *p;
 	for (p = start + 1; p < end; p) {
 		if (*p == '\\') {
-			buf[len] = read_escaped_char(p + 1);
+			buf[len] = read_escaped_char(&p, p + 1);
 			len += 1;
-			p += 2;
 		} else {
 			buf[len] = *p;
 			len += 1;
