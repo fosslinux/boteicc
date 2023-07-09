@@ -47,7 +47,10 @@ void parse_args(int argc, char **argv) {
 }
 
 FILE *open_file(char *path) {
-	if (!path || strcmp(path, "-") == 0) {
+	if (!path) {
+		return stdout;
+	}
+	if (strcmp(path, "-") == 0) {
 		return stdout;
 	}
 
