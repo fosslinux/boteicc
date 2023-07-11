@@ -15,16 +15,40 @@ void error(char *fmt) {
 //
 // foo.c:10: x = y + 1;
 //               ^ error message
+void error_line_at(int line_no, char *loc, char *fmt) {
+	char *end = loc;
+	while (*end != '\n') {
+		end += 1;
+	}
+
+	// Print the line.
+	fputs(current_filename, stderr);
+	fputc(':', stderr);
+	fputs(uint2str(line_no), stderr);
+	fputs(": ", stderr);
+	int i;
+	for (i = 0; i < end - loc; i += 1) {
+		fputc(loc[i], stderr);
+	}
+	fputc('\n', stderr);
+
+	// Show the error message.
+	int indent = strlen(current_filename) + strlen(uint2str(line_no)) + 3;
+	// TODO indent tabs
+	int pos = end - loc + indent;
+
+	for (i = 0; i < pos; i += 1) {
+		fputc(' ', stderr);
+	}
+	fputs("^ ", stderr);
+	error(fmt);
+}
+
 void error_at(char *loc, char *fmt) {
 	// Find a line contianing `loc`.
 	char *line = loc;
 	while (current_input < line && line[-1] != '\n') {
 		line -= 1;
-	}
-
-	char *end = loc;
-	while (*end != '\n') {
-		end += 1;
 	}
 
 	// Get a line number.
@@ -36,30 +60,11 @@ void error_at(char *loc, char *fmt) {
 		}
 	}
 
-	// Print the line.
-	fputs(current_filename, stderr);
-	fputc(':', stderr);
-	fputs(uint2str(line_no), stderr);
-	fputs(": ", stderr);
-	int i;
-	for (i = 0; i < end - line; i += 1) {
-		fputc(line[i], stderr);
-	}
-	fputc('\n', stderr);
-
-	// Show the error message.
-	int indent = strlen(current_filename) + strlen(uint2str(line_no)) + 3;
-	int pos = loc - line + indent;
-
-	for (i = 0; i < pos; i += 1) {
-		fputc(' ', stderr);
-	}
-	fputs("^ ", stderr);
-	error(fmt);
+	error_line_at(line_no, loc, fmt);
 }
 
 void error_tok(Token *tok, char *fmt) {
-	error_at(tok->loc, fmt);
+	error_line_at(tok->line_no, tok->loc, fmt);
 }
 
 // Consumes the current tyoken if it matches `s`??
@@ -255,6 +260,23 @@ void convert_keywords(Token *tok) {
 	}
 }
 
+// Initialize line number info for all tokens.
+void add_line_numbers(Token *tok) {
+	char *p = current_input;
+	int n = 1;
+
+	while (*p) {
+		if (p == tok->loc) {
+			tok->line_no = n;
+			tok = tok->next;
+		}
+		if (*p == '\n') {
+			n += 1;
+		}
+		p += 1;
+	}
+}
+
 // Tokenize a given string and return new tokens.
 Token *tokenize(char *filename, char *p) {
 	current_filename = filename;
@@ -340,6 +362,7 @@ Token *tokenize(char *filename, char *p) {
 
 	cur->next = new_token(TK_EOF, p, p);
 	cur = cur->next;
+	add_line_numbers(head->next);
 	convert_keywords(head->next);
 	return head->next;
 }

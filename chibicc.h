@@ -29,6 +29,8 @@ struct Token {
 	int len;            // Token length
 	void *ty;           // Type *; Used if TK_STR
 	char *str;          // String literal contents including terminator
+
+	int line_no;        // Line number
 };
 typedef struct Token Token;
 
