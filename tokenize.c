@@ -132,8 +132,11 @@ int from_hex(char c) {
 
 // Read a punctuator toekn from p and return its length.
 int read_punct(char *p) {
-	if (startswith(p, "==") || startswith(p, "!=") ||
-		startswith(p, "<=") || startswith(p, ">=")) {
+	if (startswith(p, "==") ||
+			startswith(p, "!=") ||
+			startswith(p, "<=") ||
+			startswith(p, ">=") ||
+			startswith(p, "->")) {
 		return 2;
 	}
 
