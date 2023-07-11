@@ -22,8 +22,9 @@ int main() {
   _TEST_ASSERT(32, ({ struct {int a;} x[4]; sizeof(x); }));
   _TEST_ASSERT(48, ({ struct {int a[3];} x[2]; sizeof(x); }));
   _TEST_ASSERT(2, ({ struct {char a; char b;} x; sizeof(x); }));
-  _TEST_ASSERT(9, ({ struct {char a; int b;} x; sizeof(x); }));
   _TEST_ASSERT(0, ({ struct {} x; sizeof(x); }));
+  _TEST_ASSERT(16, ({ struct {char a; int b;} x; sizeof(x); }));
+  _TEST_ASSERT(16, ({ struct {int a; char b;} x; sizeof(x); }));
 
   return 0;
 }

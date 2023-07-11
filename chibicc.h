@@ -59,6 +59,7 @@ struct Type {
 	int kind;
 
 	int size; // sizeof() value
+	int align; // alignment
 
 	// Pointer-to or array-of type. Same member used to represent the
 	// pointer/array duality in C.
@@ -202,6 +203,7 @@ void add_type(Node *node);
 //
 
 void codegen(Obj *prog, FILE *out);
+int align_to(int n, int align);
 
 //
 // util.c
