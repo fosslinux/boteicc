@@ -53,6 +53,7 @@ Token *tokenize_file(char *filename);
 #define TY_ARRAY  3
 #define TY_CHAR   4
 #define TY_STRUCT 5
+#define TY_UNION  6
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {

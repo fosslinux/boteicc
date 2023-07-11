@@ -10,8 +10,8 @@
 // a pointer argument.
 //
 // Input tokens are represented by a linked list. Unlike many recursive
-// descent parsers, we don't have the notion of the "input token stream". Most
-// parsing functions don't change the global state of the parser, so it is
+// descent parsers, we do not have the notion of the "input token stream". Most
+// parsing functions do not change the global state of the parser, so it is
 // very easy to lookahead arbitary number of tokens in this parser.
 
 #include "chibicc.h"
@@ -24,7 +24,7 @@ struct VarScope {
 };
 typedef struct VarScope VarScope;
 
-// Scope for struct tags.
+// Scope for struct or union tags.
 struct TagScope {
 	struct TagScope *next;
 	char *name;
@@ -199,6 +199,7 @@ Node *relational(Token **rest, Token *tok);
 Node *add(Token **rest, Token *tok);
 Node *mul(Token **rest, Token *tok);
 Type *struct_decl(Token **rest, Token *tok);
+Type *union_decl(Token **rest, Token *tok);
 Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
@@ -217,6 +218,10 @@ Type *declspec(Token **rest, Token *tok) {
 
 	if (equal(tok, "struct")) {
 		return struct_decl(rest, tok->next);
+	}
+
+	if (equal(tok, "union")) {
+		return union_decl(rest, tok->next);
 	}
 
 	error_tok(tok, "typename expected");
@@ -321,7 +326,10 @@ Node *declaration(Token **rest, Token *tok) {
 
 // Returns true if a given token represents a type.
 int is_typename(Token *tok) {
-	return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct");
+	return equal(tok, "char") ||
+		equal(tok, "int") ||
+		equal(tok, "struct") ||
+		equal(tok, "union");
 }
 
 // stmt = "return" expr ";"
@@ -504,9 +512,9 @@ Node *relational(Token **rest, Token *tok) {
 }
 
 // TODO: M2-Planet bug where we cannot && some of the conditions below.
-// I can't be bothered to figure out which ones do it when, because it only
+// I cannot be bothered to figure out which ones do it when, because it only
 // occurs under weird conditions.
-// So in these two functions we don't use &&.
+// So in these two functions we do not use &&.
 
 // In C, `+` operator is overloaded to perform pointer arithmetic.
 // If p is a pointer, p+n does not add n as usual, but adds sizeof(*p)*n to
@@ -676,9 +684,9 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
 	ty->members = head->next;
 }
 
-// struct-decl = ident? "{" struct-members
-Type *struct_decl(Token **rest, Token *tok) {
-	// Read a struct tag.
+// struct-union-decl = ident? ("{" struct-members)?
+Type *struct_union_decl(Token **rest, Token *tok) {
+	// Read a tag.
 	Token *tag = NULL;
 	if (tok->kind == TK_IDENT) {
 		tag = tok;
@@ -703,6 +711,18 @@ Type *struct_decl(Token **rest, Token *tok) {
 	struct_members(rest, tok->next, ty);
 	ty->align = 1;
 
+	// Register the struct type if a name was given.
+	if (tag) {
+		push_tag_scope(tag, ty);
+	}
+	return ty;
+}
+
+// struct-decl = struct-union-decl
+Type *struct_decl(Token **rest, Token *tok) {
+	Type *ty = struct_union_decl(rest, tok);
+	ty->kind = TY_STRUCT;
+
 	// Assign offsets within the struct to members.
 	int offset = 0;
 	Member *mem;
@@ -716,11 +736,26 @@ Type *struct_decl(Token **rest, Token *tok) {
 		}
 	}
 	ty->size = align_to(offset, ty->align);
+	return ty;
+}
 
-	// Register the struct type if a name was given.
-	if (tag) {
-		push_tag_scope(tag, ty);
+// union-decl = struct-union-decl
+Type *union_decl(Token **rest, Token *tok) {
+	Type *ty = struct_union_decl(rest, tok);
+	ty->kind = TY_UNION;
+
+	// Offsets are not needed - they are already initialized to zero.
+	// We need to compute alignment and size.
+	Member *mem;
+	for (mem = ty->members; mem; mem = mem->next) {
+		if (ty->align < mem->ty->align) {
+			ty->align = mem->ty->align;
+		}
+		if (ty->size < mem->ty->size) {
+			ty->size = mem->ty->size;
+		}
 	}
+	ty->size = align_to(ty->size, ty->align);
 	return ty;
 }
 
@@ -737,8 +772,8 @@ Member *get_struct_member(Type *ty, Token *tok) {
 
 Node *struct_ref(Node *lhs, Token *tok) {
 	add_type(lhs);
-	if (lhs->ty->kind != TY_STRUCT) {
-		error_tok(lhs->tok, "not a struct");
+	if (lhs->ty->kind != TY_STRUCT && lhs->ty->kind != TY_UNION) {
+		error_tok(lhs->tok, "not a struct nor a union");
 	}
 
 	Node *node = new_unary(ND_MEMBER, lhs, tok);
