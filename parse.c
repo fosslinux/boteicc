@@ -283,7 +283,6 @@ int is_typename(Token *tok) {
 }
 
 // stmt = "return" expr ";"
-//      | "_TEST_ASSERT" "(" expr "," expr ")" ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
@@ -294,31 +293,6 @@ Node *stmt(Token **rest, Token *tok) {
 		Node *node = new_node(ND_RETURN, tok);
 		node->lhs = expr(&tok, tok->next);
 		*rest = skip(tok, ";");
-		return node;
-	}
-
-	if (equal(tok, "_TEST_ASSERT")) {
-		Token *orig_tok = tok;
-		tok = skip(tok->next, "(");
-		Node *expected = expr(&tok, tok);
-		Node *eval = expr(&tok, tok->next);
-
-		char *code = calloc(eval->tok->len + 1, sizeof(char));
-		strncpy(code, eval->tok->loc, eval->tok->len);
-		Obj *code_str = new_string_literal(code, array_of(ty_char, eval->tok->len + 1));
-		Node *code_node = new_var_node(code_str, orig_tok);
-
-		Node *node = new_node(ND_IF, orig_tok);
-		node->cond = new_binary(ND_NE, expected, eval, orig_tok);
-		Node *function = new_node(ND_FUNCALL, orig_tok);
-		function->funcname = "_assert_failed";
-		function->args = expected;
-		function->args->next = eval;
-		function->args->next->next = code_node;
-		node->then = new_node(ND_EXPR_STMT, tok);
-		node->then->lhs = function;
-
-		*rest = skip(tok->next, ";");
 		return node;
 	}
 
@@ -669,6 +643,7 @@ Node *funcall(Token **rest, Token *tok) {
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
 //         | "sizeof" unary
+//         | "_TEST_ASSERT" "(" expr "," expr ")" ";"
 //         | ident func-args?
 //         | str
 //         | num
@@ -692,6 +667,28 @@ Node *primary(Token **rest, Token *tok) {
 		Node *node = unary(rest, tok->next);
 		add_type(node);
 		return new_num(node->ty->size, tok);
+	}
+
+	if (equal(tok, "_TEST_ASSERT")) {
+		Token *orig_tok = tok;
+		tok = skip(tok->next, "(");
+		Node *expected = expr(&tok, tok);
+		Node *eval = expr(&tok, tok->next);
+
+		int code_length = tok->loc - eval->tok->loc;
+		char *code = calloc(code_length + 1, sizeof(char));
+		strncpy(code, eval->tok->loc, code_length);
+		Obj *code_str = new_string_literal(code, array_of(ty_char, code_length + 1));
+		Node *code_node = new_var_node(code_str, orig_tok);
+
+		Node *node = new_node(ND_FUNCALL, orig_tok);
+		node->funcname = "_assert_failed";
+		node->args = expected;
+		node->args->next = eval;
+		node->args->next->next = code_node;
+
+		*rest = tok->next;
+		return node;
 	}
 
 	if (tok->kind == TK_IDENT) {
