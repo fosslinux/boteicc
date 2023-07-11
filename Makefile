@@ -11,7 +11,7 @@ chibicc: $(OBJS)
 
 $(OBJS): chibicc.h
 
-test/%.exe: test/%.c test/common.M1
+test/%.exe: test/%.c test/common.M1 .FORCE
 	./chibicc -o test/$*.M1 test/$*.c
 	blood-elf --little-endian --file test/$*.M1 --output tmp-elf.M1
 	# This ordering is VITALLY important
@@ -26,4 +26,5 @@ clean:
 	rm -rf chibicc tmp* $(TESTS) test/*.s test/*.exe
 	find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
 
-.PHONY: test clean
+.PHONY: test clean .FORCE
+.FORCE:

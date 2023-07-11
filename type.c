@@ -24,9 +24,11 @@ Type *copy_type(Type *ty) {
 	Type *ret = calloc(1, sizeof(Type));
 	ret->kind = ty->kind;
 	ret->size = ty->size;
+	ret->align = ty->align;
 	ret->base = ty->base;
 	ret->name = ty->name;
 	ret->array_len = ty->array_len;
+	ret->members = ty->members;
 	ret->return_ty = ty->return_ty;
 	ret->params = ty->params;
 	ret->next = ty->next;
