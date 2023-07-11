@@ -16,7 +16,7 @@ test/%.exe: test/%.c test/common.M1
 	blood-elf --little-endian --file test/$*.M1 --output tmp-elf.M1
 	# This ordering is VITALLY important
 	M1 --file x86_defs.M1 --file libc-core.M1 --little-endian --architecture x86 --file test/common.M1 --file test/$*.M1 --file tmp-elf.M1 --output tmp.hex2
-	hex2 --file /tmp/early/M2libc/x86/ELF-x86-debug.hex2 --file tmp.hex2 --output $@ --architecture x86 --base-address 0x8048000 --little-endian
+	hex2 --file ELF-x86-debug.hex2 --file tmp.hex2 --output $@ --architecture x86 --base-address 0x8048000 --little-endian
 
 test: $(TESTS)
 	for i in $^; do echo $$i; ./$$i || exit 1; echo; done

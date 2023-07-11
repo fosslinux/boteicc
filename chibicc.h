@@ -141,6 +141,7 @@ typedef struct Obj Obj;
 #define ND_DEREF     18 // unary *
 #define ND_FUNCALL   19 // Function call
 #define ND_STMT_EXPR 20 // Statement expression [GNU]
+#define ND_COMMA     21 // ,
 
 // AST node type
 struct Node {

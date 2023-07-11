@@ -385,9 +385,16 @@ Node *expr_stmt(Token **rest, Token *tok) {
 	return node;
 }
 
-// expr = assign
+// expr = assign ("," expr)?
 Node *expr(Token **rest, Token *tok) {
-	return assign(rest, tok);
+	Node *node = assign(&tok, tok);
+
+	if (equal(tok, ",")) {
+		return new_binary(ND_COMMA, node, expr(rest, tok->next), tok);
+	}
+
+	*rest = tok;
+	return node;
 }
 
 // assign = equality ("=" assign)?
@@ -643,7 +650,7 @@ Node *funcall(Token **rest, Token *tok) {
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
 //         | "sizeof" unary
-//         | "_TEST_ASSERT" "(" expr "," expr ")" ";"
+//         | "_TEST_ASSERT" "(" assign "," assign ")" ";"
 //         | ident func-args?
 //         | str
 //         | num
@@ -672,8 +679,8 @@ Node *primary(Token **rest, Token *tok) {
 	if (equal(tok, "_TEST_ASSERT")) {
 		Token *orig_tok = tok;
 		tok = skip(tok->next, "(");
-		Node *expected = expr(&tok, tok);
-		Node *eval = expr(&tok, tok->next);
+		Node *expected = assign(&tok, tok);
+		Node *eval = assign(&tok, tok->next);
 
 		int code_length = tok->loc - eval->tok->loc;
 		char *code = calloc(code_length + 1, sizeof(char));

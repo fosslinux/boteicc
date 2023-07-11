@@ -71,6 +71,10 @@ void gen_addr(Node *node) {
 		}
 	} else if (node->kind == ND_DEREF) {
 		gen_expr(node->lhs);
+	} else if (node->kind == ND_COMMA) {
+		gen_expr(node->lhs);
+		gen_addr(node->rhs);
+		return;
 	} else {
 		error_tok(node->tok, "not an lvalue");
 	}
@@ -142,6 +146,10 @@ void gen_expr(Node *node) {
 		for (n = node->body; n; n = n->next) {
 			gen_stmt(n);
 		}
+		return;
+	} else if (node->kind == ND_COMMA) {
+		gen_expr(node->lhs);
+		gen_expr(node->rhs);
 		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
