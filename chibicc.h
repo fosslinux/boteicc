@@ -47,11 +47,12 @@ Token *tokenize_file(char *filename);
 // type.c
 //
 
-#define TY_INT   0
-#define TY_PTR   1
-#define TY_FUNC  2
-#define TY_ARRAY 3
-#define TY_CHAR  4
+#define TY_INT    0
+#define TY_PTR    1
+#define TY_FUNC   2
+#define TY_ARRAY  3
+#define TY_CHAR   4
+#define TY_STRUCT 5
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {
@@ -74,12 +75,24 @@ struct Type {
 	// Array
 	int array_len;
 
+	// Struct
+	void *members;
+
 	// Function
 	struct Type *return_ty;
 	struct Type *params;
 	struct Type *next;
 };
 typedef struct Type Type;
+
+// Struct member
+struct Member {
+	struct Member *next;
+	Type *ty;
+	Token *name;
+	int offset;
+};
+typedef struct Member Member;
 
 extern Type *ty_int;
 extern Type *ty_char;
@@ -142,6 +155,7 @@ typedef struct Obj Obj;
 #define ND_FUNCALL   19 // Function call
 #define ND_STMT_EXPR 20 // Statement expression [GNU]
 #define ND_COMMA     21 // ,
+#define ND_MEMBER    22 // .
 
 // AST node type
 struct Node {
@@ -162,6 +176,9 @@ struct Node {
 
 	// Block or statement expression
 	struct Node *body;
+
+	// Struct member access
+	Member *member;
 
 	// Function call
 	char *funcname;

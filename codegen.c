@@ -75,6 +75,10 @@ void gen_addr(Node *node) {
 		gen_expr(node->lhs);
 		gen_addr(node->rhs);
 		return;
+	} else if (node->kind == ND_MEMBER) {
+		gen_addr(node->lhs);
+		num_postfix("add_eax, %", node->member->offset);
+		return;
 	} else {
 		error_tok(node->tok, "not an lvalue");
 	}
@@ -124,7 +128,7 @@ void gen_expr(Node *node) {
 		emit("sub_ebx,eax");
 		emit("mov_eax,ebx");
 		return;
-	} else if (node->kind == ND_VAR) {
+	} else if (node->kind == ND_VAR || node->kind == ND_MEMBER) {
 		gen_addr(node);
 		load(node->ty);
 		return;

@@ -165,19 +165,28 @@ Node *equality(Token **rest, Token *tok);
 Node *relational(Token **rest, Token *tok);
 Node *add(Token **rest, Token *tok);
 Node *mul(Token **rest, Token *tok);
+Type *struct_decl(Token **rest, Token *tok);
 Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-// declspec = "char" | "int"
+// declspec = "char" | "int" | struct-decl
 Type *declspec(Token **rest, Token *tok) {
 	if (equal(tok, "char")) {
 		*rest = tok->next;
 		return ty_char;
 	}
 
-	*rest = skip(tok, "int");
-	return ty_int;
+	if (equal(tok, "int")) {
+		*rest = tok->next;
+		return ty_int;
+	}
+
+	if (equal(tok, "struct")) {
+		return struct_decl(rest, tok->next);
+	}
+
+	error_tok(tok, "typename expected");
 }
 
 // func-params = (param ("," param)*)? ")"
@@ -279,7 +288,7 @@ Node *declaration(Token **rest, Token *tok) {
 
 // Returns true if a given token represents a type.
 int is_typename(Token *tok) {
-	return equal(tok, "char") || equal(tok, "int");
+	return equal(tok, "char") || equal(tok, "int") || equal(tok, "struct");
 }
 
 // stmt = "return" expr ";"
@@ -604,22 +613,104 @@ Node *unary(Token **rest, Token *tok) {
 	return postfix(rest, tok);
 }
 
-// postfix = primary ("[" expr "]")*
+// struct-members = (declspec declarator ("," declarator)* ";")*
+void struct_members(Token **rest, Token *tok, Type *ty) {
+	Member *head = calloc(1, sizeof(Member));
+	Member *cur = head;
+
+	Type *basety;
+	Member *mem;
+	int i;
+	while (!equal(tok, "}")) {
+		basety = declspec(&tok, tok);
+		i = 0;
+
+		while(!consume(&tok, tok, ";")) {
+			if (i) {
+				tok = skip(tok, ",");
+			}
+			i += 1;
+
+			mem = calloc(1, sizeof(Member));
+			mem->ty = declarator(&tok, tok, basety);
+			mem->name = mem->ty->name;
+			cur->next = mem;
+			cur = cur->next;
+		}
+	}
+
+	*rest = tok->next;
+	ty->members = head->next;
+}
+
+// struct-decl = "{" struct-members
+Type *struct_decl(Token **rest, Token *tok) {
+	tok = skip(tok, "{");
+
+	// Construct the struct object.
+	Type *ty = calloc(1, sizeof(Type));
+	ty->kind = TY_STRUCT;
+	struct_members(rest, tok, ty);
+
+	// Assign offsets within the struct to members.
+	int offset = 0;
+	Member *mem;
+	for (mem = ty->members; mem; mem = mem->next) {
+		mem->offset = offset;
+		offset += mem->ty->size;
+	}
+	ty->size = offset;
+
+	return ty;
+}
+
+Member *get_struct_member(Type *ty, Token *tok) {
+	Member *mem;
+	for (mem = ty->members; mem; mem = mem->next) {
+		if (mem->name->len == tok->len &&
+				!strncmp(mem->name->loc, tok->loc, tok->len)) {
+			return mem;
+		}
+	}
+	error_tok(tok, "no such member");
+}
+
+Node *struct_ref(Node *lhs, Token *tok) {
+	add_type(lhs);
+	if (lhs->ty->kind != TY_STRUCT) {
+		error_tok(lhs->tok, "not a struct");
+	}
+
+	Node *node = new_unary(ND_MEMBER, lhs, tok);
+	node->member = get_struct_member(lhs->ty, tok);
+	return node;
+}
+
+// postfix = primary ("[" expr "]" | "." ident)*
 Node *postfix(Token **rest, Token *tok) {
 	Node *node = primary(&tok, tok);
 
 	Token *start;
 	Node *idx;
-	while (equal(tok, "[")) {
-		// x[y] => *(x+y)
-		start = tok;
-		idx = expr(&tok, tok->next);
-		tok = skip(tok, "]");
-		node = new_unary(ND_DEREF, new_add(node, idx, start), start);
-	}
+	while (1) {
+		if (equal(tok, "[")) {
+			// x[y] => *(x+y)
+			start = tok;
+			idx = expr(&tok, tok->next);
+			tok = skip(tok, "]");
+			node = new_unary(ND_DEREF, new_add(node, idx, start), start);
+			continue;
+		}
 
-	*rest = tok;
-	return node;
+		if (equal(tok, ".")) {
+			node = struct_ref(node, tok->next);
+			tok = tok->next->next;
+			continue;
+		}
+
+		*rest = tok;
+		return node;
+	}
 }
 
 // funcall = ident "(" (assign ("," assign)*)? ")"

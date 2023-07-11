@@ -103,6 +103,9 @@ void add_type(Node *node) {
 	} else if (node->kind == ND_COMMA) {
 		node->ty = node->rhs->ty;
 		return;
+	} else if (node->kind == ND_MEMBER) {
+		node->ty = node->member->ty;
+		return;
 	} else if (node->kind == ND_ADDR) {
 		if (node->lhs->ty->kind == TY_ARRAY) {
 			node->ty = pointer_to(node->lhs->ty->base);
