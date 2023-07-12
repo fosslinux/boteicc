@@ -280,10 +280,19 @@ Type *type_suffix(Token **rest, Token *tok, Type *ty) {
 	return ty;
 }
 
-// declarator = "*"* ident type-suffix
+// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
 Type *declarator(Token **rest, Token *tok, Type *ty) {
 	while (consume(&tok, tok, "*")) {
 		ty = pointer_to(ty);
+	}
+
+	if (equal(tok, "(")) {
+		Token *start = tok;
+		Type *dummy = calloc(1, sizeof(Type));
+		declarator(&tok, start->next, dummy);
+		tok = skip(tok, ")");
+		ty = type_suffix(rest, tok, ty);
+		return declarator(&tok, start->next, ty);
 	}
 
 	if (tok->kind != TK_IDENT) {
