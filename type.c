@@ -12,7 +12,7 @@ Type *new_type(int kind, int size, int align) {
 }
 
 void initialize_types(void) {
-	ty_int = new_type(TY_INT, 8, 8);
+	ty_int = new_type(TY_INT, 4, 4);
 	ty_char = new_type(TY_CHAR, 1, 1);
 }
 
@@ -36,7 +36,7 @@ Type *copy_type(Type *ty) {
 }
 
 Type *pointer_to(Type *base) {
-	Type *ty = new_type(TY_PTR, 8, 8);
+	Type *ty = new_type(TY_PTR, 4, 4);
 	ty->base = base;
 	return ty;
 }

@@ -15,19 +15,19 @@ int main() {
 
   _TEST_ASSERT(6, ({ struct { struct { char b; } a; } x; x.a.b=6; x.a.b; }));
 
-  _TEST_ASSERT(8, ({ struct {int a;} x; sizeof(x); }));
-  _TEST_ASSERT(16, ({ struct {int a; int b;} x; sizeof(x); }));
-  _TEST_ASSERT(16, ({ struct {int a, b;} x; sizeof(x); }));
-  _TEST_ASSERT(24, ({ struct {int a[3];} x; sizeof(x); }));
-  _TEST_ASSERT(32, ({ struct {int a;} x[4]; sizeof(x); }));
-  _TEST_ASSERT(48, ({ struct {int a[3];} x[2]; sizeof(x); }));
+  _TEST_ASSERT(4, ({ struct {int a;} x; sizeof(x); }));
+  _TEST_ASSERT(8, ({ struct {int a; int b;} x; sizeof(x); }));
+  _TEST_ASSERT(8, ({ struct {int a, b;} x; sizeof(x); }));
+  _TEST_ASSERT(12, ({ struct {int a[3];} x; sizeof(x); }));
+  _TEST_ASSERT(16, ({ struct {int a;} x[4]; sizeof(x); }));
+  _TEST_ASSERT(24, ({ struct {int a[3];} x[2]; sizeof(x); }));
   _TEST_ASSERT(2, ({ struct {char a; char b;} x; sizeof(x); }));
   _TEST_ASSERT(0, ({ struct {} x; sizeof(x); }));
-  _TEST_ASSERT(16, ({ struct {char a; int b;} x; sizeof(x); }));
-  _TEST_ASSERT(16, ({ struct {int a; char b;} x; sizeof(x); }));
+  _TEST_ASSERT(8, ({ struct {char a; int b;} x; sizeof(x); }));
+  _TEST_ASSERT(8, ({ struct {int a; char b;} x; sizeof(x); }));
 
-  _TEST_ASSERT(16, ({ struct t {int a; int b;} x; struct t y; sizeof(y); }));
-  _TEST_ASSERT(16, ({ struct t {int a; int b;}; struct t y; sizeof(y); }));
+  _TEST_ASSERT(8, ({ struct t {int a; int b;} x; struct t y; sizeof(y); }));
+  _TEST_ASSERT(8, ({ struct t {int a; int b;}; struct t y; sizeof(y); }));
   _TEST_ASSERT(2, ({ struct t {char a[2];}; { struct t {char a[4];}; } struct t y; sizeof(y); }));
   _TEST_ASSERT(3, ({ struct t {int x;}; int t=1; struct t y; y.x=2; t+y.x; }));
 
@@ -43,6 +43,9 @@ int main() {
   _TEST_ASSERT(7, ({ struct t {int a,b;}; struct t x; x.a=7; struct t y; struct t *z=&y; *z=x; y.a; }));
   _TEST_ASSERT(7, ({ struct t {int a,b;}; struct t x; x.a=7; struct t y, *p=&x, *q=&y; *q=*p; y.a; }));
   _TEST_ASSERT(5, ({ struct t {char a, b;} x, y; x.a=5; y=x; y.a; }));
+
+  _TEST_ASSERT(8, ({ struct t {int a; int b;} x; struct t y; sizeof(y); }));
+  _TEST_ASSERT(8, ({ struct t {int a; int b;}; struct t y; sizeof(y); }));
 
   return 0;
 }
