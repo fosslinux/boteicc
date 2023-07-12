@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "M2libc/bootstrappable.h"
@@ -24,7 +25,7 @@
 struct Token {
 	int kind;           // Token kind
     struct Token *next; // Next token
-	int val;            // If kind is TK_NUM, its value
+	int32_t val;        // If kind is TK_NUM, its value
 	char *loc;          // Token location
 	int len;            // Token length
 	void *ty;           // Type *; Used if TK_STR
@@ -54,6 +55,7 @@ Token *tokenize_file(char *filename);
 #define TY_CHAR   4
 #define TY_STRUCT 5
 #define TY_UNION  6
+#define TY_LONG   7
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {
@@ -98,6 +100,7 @@ typedef struct Member Member;
 
 extern Type *ty_int;
 extern Type *ty_char;
+extern Type *ty_long;
 
 int is_integer(Type *ty);
 Type *copy_type(Type *ty);
@@ -187,7 +190,7 @@ struct Node {
 	struct Node *args;
 
 	Obj *var;          // Used if kind == ND_VAR
-	int val;           // Used if kind == ND_NUM
+	int32_t val;       // Used if kind == ND_NUM
 };
 typedef struct Node Node;
 

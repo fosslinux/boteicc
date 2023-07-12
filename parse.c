@@ -107,7 +107,7 @@ Node *new_unary(int kind, Node *expr, Token *tok) {
 	return node;
 }
 
-Node *new_num(int val, Token *tok) {
+Node *new_num(int32_t val, Token *tok) {
 	Node *node = new_node(ND_NUM, tok);
 	node->val = val;
 	return node;
@@ -204,7 +204,7 @@ Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-// declspec = "char" | "int" | struct-decl
+// declspec = "char" | "int" | "long" | struct-decl | union-decl
 Type *declspec(Token **rest, Token *tok) {
 	if (equal(tok, "char")) {
 		*rest = tok->next;
@@ -214,6 +214,11 @@ Type *declspec(Token **rest, Token *tok) {
 	if (equal(tok, "int")) {
 		*rest = tok->next;
 		return ty_int;
+	}
+
+	if (equal(tok, "long")) {
+		*rest = tok->next;
+		return ty_long;
 	}
 
 	if (equal(tok, "struct")) {
@@ -328,6 +333,7 @@ Node *declaration(Token **rest, Token *tok) {
 int is_typename(Token *tok) {
 	return equal(tok, "char") ||
 		equal(tok, "int") ||
+		equal(tok, "long") ||
 		equal(tok, "struct") ||
 		equal(tok, "union");
 }

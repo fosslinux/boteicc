@@ -157,7 +157,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "sizeof") ||
 			equal(tok, "char") ||
 			equal(tok, "_TEST_ASSERT") ||
-			equal(tok, "struct")) {
+			equal(tok, "struct") ||
+			equal(tok, "long")) {
 		return TRUE;
 	}
 	return FALSE;

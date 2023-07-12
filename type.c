@@ -2,6 +2,7 @@
 
 Type *ty_int;
 Type *ty_char;
+Type *ty_long;
 
 Type *new_type(int kind, int size, int align) {
 	Type *ty = calloc(1, sizeof(Type));
@@ -12,12 +13,14 @@ Type *new_type(int kind, int size, int align) {
 }
 
 void initialize_types(void) {
-	ty_int = new_type(TY_INT, 4, 4);
 	ty_char = new_type(TY_CHAR, 1, 1);
+	ty_int = new_type(TY_INT, 4, 4);
+	ty_long = new_type(TY_LONG, 4, 4);
 }
 
 int is_integer(Type *ty) {
-	return ty->kind == TY_CHAR || ty->kind == TY_INT;
+	int k = ty->kind;
+	return k == TY_CHAR || k == TY_INT || k == TY_LONG;
 }
 
 Type *copy_type(Type *ty) {
@@ -97,7 +100,8 @@ void add_type(Node *node) {
 			node->kind == ND_LE ||
 			node->kind == ND_NUM ||
 			node->kind == ND_FUNCALL) {
-		node->ty = ty_int;
+		// long vs int here is stylistic (long = int)
+		node->ty = ty_long;
 	} else if (node->kind == ND_VAR) {
 		node->ty = node->var->ty;
 		return;

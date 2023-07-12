@@ -47,5 +47,7 @@ int main() {
   _TEST_ASSERT(8, ({ struct t {int a; int b;} x; struct t y; sizeof(y); }));
   _TEST_ASSERT(8, ({ struct t {int a; int b;}; struct t y; sizeof(y); }));
 
+  _TEST_ASSERT(8, ({ struct {char a; long b;} x; sizeof(x); }));
+
   return 0;
 }

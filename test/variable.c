@@ -13,7 +13,7 @@ int main() {
 
   _TEST_ASSERT(4, ({ int x; sizeof(x); }));
   _TEST_ASSERT(4, ({ int x; sizeof x; }));
-  _TEST_ASSERT(8, ({ int *x; sizeof(x); }));
+  _TEST_ASSERT(4, ({ int *x; sizeof(x); }));
   _TEST_ASSERT(16, ({ int x[4]; sizeof(x); }));
   _TEST_ASSERT(48, ({ int x[3][4]; sizeof(x); }));
   _TEST_ASSERT(16, ({ int x[3][4]; sizeof(*x); }));
@@ -47,6 +47,8 @@ int main() {
 
   _TEST_ASSERT(7, ({ int x; int y; char z; char *a=&y; char *b=&z; b-a; }));
   _TEST_ASSERT(1, ({ int x; char y; int z; char *a=&y; char *b=&z; b-a; }));
+
+  _TEST_ASSERT(4, ({ long x; sizeof(x); }));
 
   return 0;
 }
