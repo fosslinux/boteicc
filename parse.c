@@ -186,6 +186,17 @@ void push_tag_scope(Token *tok, Type *ty) {
 	scope->tags = sc;
 }
 
+// Returns true if a given token represents a type.
+int is_typename(Token *tok) {
+	return equal(tok, "char") ||
+		equal(tok, "short") ||
+		equal(tok, "int") ||
+		equal(tok, "long") ||
+		equal(tok, "struct") ||
+		equal(tok, "union") ||
+		equal(tok, "void");
+}
+
 Type *declspec(Token **rest, Token *tok);
 Type *declarator(Token **rest, Token *tok, Type *ty);
 Node *declaration(Token **rest, Token *tok);
@@ -204,43 +215,77 @@ Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-// declspec = "void" | "char" | "short" | "int" | "long"
-//          | struct-decl | union-decl
+// declspec = ("void" | "char" | "short" | "int" | "long"
+//          | struct-decl | union-decl)+
+//
+// The order of typenames in a type specifier is irrelevant.
+// Eg, `int long static` == `static long int` == `static long`.
+// However, eg `char int` is not a valid type specifier.
+// Only a limited combination of typenames is valid.
+//
+// In this function, we count the number of occurences of each typename, while
+// keeping the current type object that the typenames until that point
+// represent. Once a non-typename token is reached, we return the current type
+// object.
 Type *declspec(Token **rest, Token *tok) {
-	if (equal(tok, "void")) {
-		*rest = tok->next;
-		return ty_void;
+	// We use a single integer as counters for all typenames.
+	int counter = 0;
+
+	int VOID   = 1 << 0;
+	int CHAR   = 1 << 2;
+	int SHORT  = 1 << 4;
+	int INT    = 1 << 6;
+	int LONG   = 1 << 8;
+	int OTHER  = 1 << 10;
+
+	Type *ty = ty_int; // Default
+	
+	while (is_typename(tok)) {
+		// User-defined types.
+		if (equal(tok, "struct") || equal(tok, "union")) {
+			if (equal(tok, "struct")) {
+				ty = struct_decl(&tok, tok->next);
+			} else {
+				ty = union_decl(&tok, tok->next);
+			}
+			counter += OTHER;
+			continue;
+		}
+
+		// Handle built-in types.
+		if (equal(tok, "void")) {
+			counter += VOID;
+		} else if (equal(tok, "char")) {
+			counter += CHAR;
+		} else if (equal(tok, "short")) {
+			counter += SHORT;
+		} else if (equal(tok, "int")) {
+			counter += INT;
+		} else if (equal(tok, "long")) {
+			counter += LONG;
+		} else {
+			error("internal error in declspec, invalid type");
+		}
+
+		if (counter == VOID) {
+			ty = ty_void;
+		} else if (counter == CHAR) {
+			ty = ty_char;
+		} else if (counter == SHORT || counter == SHORT + INT) {
+			ty = ty_short;
+		} else if (counter == INT) {
+			ty = ty_int;
+		} else if (counter == LONG || counter == LONG + INT) {
+			ty = ty_long;
+		} else {
+			error_tok(tok, "invalid type");
+		}
+
+		tok = tok->next;
 	}
 
-	if (equal(tok, "char")) {
-		*rest = tok->next;
-		return ty_char;
-	}
-
-	if (equal(tok, "short")) {
-		*rest = tok->next;
-		return ty_short;
-	}
-
-	if (equal(tok, "int")) {
-		*rest = tok->next;
-		return ty_int;
-	}
-
-	if (equal(tok, "long")) {
-		*rest = tok->next;
-		return ty_long;
-	}
-
-	if (equal(tok, "struct")) {
-		return struct_decl(rest, tok->next);
-	}
-
-	if (equal(tok, "union")) {
-		return union_decl(rest, tok->next);
-	}
-
-	error_tok(tok, "typename expected");
+	*rest = tok;
+	return ty;
 }
 
 // func-params = (param ("," param)*)? ")"
@@ -351,17 +396,6 @@ Node *declaration(Token **rest, Token *tok) {
 	node->body = head->next;
 	*rest = tok->next;
 	return node;
-}
-
-// Returns true if a given token represents a type.
-int is_typename(Token *tok) {
-	return equal(tok, "char") ||
-		equal(tok, "short") ||
-		equal(tok, "int") ||
-		equal(tok, "long") ||
-		equal(tok, "struct") ||
-		equal(tok, "union") ||
-		equal(tok, "void");
 }
 
 // stmt = "return" expr ";"
