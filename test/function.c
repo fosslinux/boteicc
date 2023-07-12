@@ -1,3 +1,6 @@
+int ret3();
+int addx();
+
 int ret3() {
   return 3;
   return 5;
