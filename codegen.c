@@ -86,12 +86,12 @@ void gen_addr(Node *node) {
 
 // Load a value from an address in %eax.
 void load(Type *ty) {
-	if (ty->kind == TY_ARRAY) {
-		// If it is an array, do not attempt to load a value into the register,
-		// because in general, we cannot load an entire array into a register.
-		// The result of evaluations from arrays becomes the address of the
-		// array. This is the conversion from array => pointer to first element
-		// of array occurs.
+	if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_UNION) {
+		// If it is an large data structure, do not attempt to load a value
+		// into the register, because in general, we cannot load an entire
+		// array into a register. The result of evaluations from arrays becomes
+		// the address of the array. This is the conversion from array =>
+		// pointer to first element of array occurs.
 		return;
 	}
 	if (ty->size == 1) {
@@ -112,6 +112,23 @@ void mov_with_size(Type *ty) {
 // Store %eax to the address in the top of the stack.
 void store(Type *ty) {
 	pop("ebx");
+
+	if (ty->kind == TY_STRUCT || ty->kind == TY_UNION) {
+		int i;
+		for (i = 0; i < ty->size; i += 1) {
+			// TODO simplify
+			emit("mov_edx,eax");
+			emit("movzx_eax,BYTE_PTR_[eax]");
+			emit("mov_[ebx],al");
+			emit("mov_eax,ebx");
+			emit("add_eax, %1");
+			emit("mov_ebx,eax");
+			emit("mov_eax,edx");
+			emit("add_eax, %1");
+		}
+		return;
+	}
+
 	mov_with_size(ty);
 }
 
