@@ -84,7 +84,7 @@ Token *skip(Token *tok, char *s) {
 }
 
 // Ensure current token is TK_NUM.
-int get_number(Token *tok) {
+long get_number(Token *tok) {
 	if (tok->kind != TK_NUM) {
 		error_tok(tok, "expected a number");
 	}
@@ -160,7 +160,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "struct") ||
 			equal(tok, "long") ||
 			equal(tok, "short") ||
-			equal(tok, "void")) {
+			equal(tok, "void") ||
+			equal(tok, "typedef")) {
 		return TRUE;
 	}
 	return FALSE;

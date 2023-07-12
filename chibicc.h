@@ -39,7 +39,7 @@ void error(char *fmt);
 void error_at(char *loc, char *fmt);
 void error_tok(Token *tok, char *fmt);
 int equal(Token *tok, char *op);
-int get_number(Token *tok);
+long get_number(Token *tok);
 Token *skip(Token *tok, char *op);
 int consume(Token **rest, Token *tok, char *str);
 Token *tokenize_file(char *filename);
