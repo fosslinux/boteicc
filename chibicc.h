@@ -57,6 +57,7 @@ Token *tokenize_file(char *filename);
 #define TY_UNION  6
 #define TY_LONG   7
 #define TY_SHORT  8
+#define TY_VOID   9
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {
@@ -99,6 +100,7 @@ struct Member {
 };
 typedef struct Member Member;
 
+extern Type *ty_void;
 extern Type *ty_int;
 extern Type *ty_short;
 extern Type *ty_char;

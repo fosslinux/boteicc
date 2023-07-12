@@ -204,8 +204,14 @@ Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-// declspec = "char" | "short" | "int" | "long" | struct-decl | union-decl
+// declspec = "void" | "char" | "short" | "int" | "long"
+//          | struct-decl | union-decl
 Type *declspec(Token **rest, Token *tok) {
+	if (equal(tok, "void")) {
+		*rest = tok->next;
+		return ty_void;
+	}
+
 	if (equal(tok, "char")) {
 		*rest = tok->next;
 		return ty_char;
@@ -324,6 +330,10 @@ Node *declaration(Token **rest, Token *tok) {
 		i += 1;
 
 		ty = declarator(&tok, tok, basety);
+		if (ty->kind == TY_VOID) {
+			error_tok(tok, "variable declared void");
+		}
+
 		var = new_lvar(get_ident(ty->name), ty);
 
 		if (!equal(tok, "=")) {
@@ -350,7 +360,8 @@ int is_typename(Token *tok) {
 		equal(tok, "int") ||
 		equal(tok, "long") ||
 		equal(tok, "struct") ||
-		equal(tok, "union");
+		equal(tok, "union") ||
+		equal(tok, "void");
 }
 
 // stmt = "return" expr ";"

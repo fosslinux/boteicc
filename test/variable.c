@@ -60,5 +60,7 @@ int main() {
   _TEST_ASSERT(3, ({ char *x[3]; char y; x[0]=&y; y=3; x[0][0]; }));
   _TEST_ASSERT(4, ({ char x[3]; char (*y)[3]=x; y[0][0]=4; y[0][0]; }));
 
+  { void *x; }
+
   return 0;
 }
