@@ -204,11 +204,16 @@ Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 
-// declspec = "char" | "int" | "long" | struct-decl | union-decl
+// declspec = "char" | "short" | "int" | "long" | struct-decl | union-decl
 Type *declspec(Token **rest, Token *tok) {
 	if (equal(tok, "char")) {
 		*rest = tok->next;
 		return ty_char;
+	}
+
+	if (equal(tok, "short")) {
+		*rest = tok->next;
+		return ty_short;
 	}
 
 	if (equal(tok, "int")) {
@@ -332,6 +337,7 @@ Node *declaration(Token **rest, Token *tok) {
 // Returns true if a given token represents a type.
 int is_typename(Token *tok) {
 	return equal(tok, "char") ||
+		equal(tok, "short") ||
 		equal(tok, "int") ||
 		equal(tok, "long") ||
 		equal(tok, "struct") ||

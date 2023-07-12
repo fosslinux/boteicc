@@ -1,7 +1,8 @@
 #include "chibicc.h"
 
-Type *ty_int;
 Type *ty_char;
+Type *ty_short;
+Type *ty_int;
 Type *ty_long;
 
 Type *new_type(int kind, int size, int align) {
@@ -14,13 +15,17 @@ Type *new_type(int kind, int size, int align) {
 
 void initialize_types(void) {
 	ty_char = new_type(TY_CHAR, 1, 1);
+	ty_short = new_type(TY_SHORT, 2, 2);
 	ty_int = new_type(TY_INT, 4, 4);
 	ty_long = new_type(TY_LONG, 4, 4);
 }
 
 int is_integer(Type *ty) {
 	int k = ty->kind;
-	return k == TY_CHAR || k == TY_INT || k == TY_LONG;
+	return k == TY_CHAR ||
+		k == TY_SHORT ||
+		k == TY_INT ||
+		k == TY_LONG;
 }
 
 Type *copy_type(Type *ty) {

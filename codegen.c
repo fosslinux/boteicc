@@ -96,6 +96,8 @@ void load(Type *ty) {
 	}
 	if (ty->size == 1) {
 		emit("movsx_eax,BYTE_PTR_[eax]");
+	} else if (ty->size == 2) {
+		emit("movsx_eax,WORD_PTR_[eax]");
 	} else {
 		emit("mov_eax,[eax]");
 	}
@@ -104,6 +106,8 @@ void load(Type *ty) {
 void mov_with_size(Type *ty) {
 	if (ty->size == 1) {
 		emit("mov_[ebx],al");
+	} else if (ty->size == 2) {
+		emit("mov_[ebx],ax");
 	} else {
 		emit("mov_[ebx],eax");
 	}
