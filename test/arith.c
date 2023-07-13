@@ -29,5 +29,7 @@ int main() {
   _TEST_ASSERT(1, 1>=1);
   _TEST_ASSERT(0, 1>=2);
 
+  _TEST_ASSERT(0, 1073741824 * 100 / 100);
+
   return 0;
 }

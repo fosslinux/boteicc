@@ -17,5 +17,14 @@ int main() {
   _TEST_ASSERT(48, sizeof(int[3][4]));
   _TEST_ASSERT(8, sizeof(struct {int a; int b;}));
 
+  _TEST_ASSERT(4, sizeof(-10 + (short)5));
+  _TEST_ASSERT(4, sizeof(-10 - (short)5));
+  _TEST_ASSERT(4, sizeof(-10 * (short)5));
+  _TEST_ASSERT(4, sizeof(-10 / (short)5));
+  _TEST_ASSERT(4, sizeof((short)-10 + 5));
+  _TEST_ASSERT(4, sizeof((short)-10 - 5));
+  _TEST_ASSERT(4, sizeof((short)-10 * 5));
+  _TEST_ASSERT(4, sizeof((short)-10 / 5));
+
   return 0;
 }

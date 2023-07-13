@@ -65,6 +65,24 @@ Type *array_of(Type *base, int len) {
 	return ty;
 }
 
+Type *get_common_type(Type *ty1, Type *ty2) {
+	if (ty1->base) {
+		return pointer_to(ty1->base);
+	}
+	return ty_int;
+}
+
+// For many binary operators, we implicitly promote operands so that both
+// operands have the same type.
+// Eg, any integral type smaller than int is promoted to int.
+//
+// This is called the "usual arithmetic conversion".
+void usual_arith_conv(Node *node) {
+	Type *ty = get_common_type(node->lhs->ty, node->rhs->ty);
+	node->lhs = new_cast(node->lhs, ty);
+	node->rhs = new_cast(node->rhs, ty);
+}
+
 // Adds typing information to a given node.
 void add_type(Node *node) {
 	if (!node) {
@@ -90,34 +108,41 @@ void add_type(Node *node) {
 		add_type(n);
 	}
 
-	if (node->kind == ND_ADD ||
+	if (node->kind == ND_NUM) {
+		node->ty = ty_int;
+	} else if (node->kind == ND_ADD ||
 			node->kind == ND_SUB ||
 			node->kind == ND_MUL ||
-			node->kind == ND_DIV ||
-			node->kind == ND_NEG) {
+			node->kind == ND_DIV) {
+		usual_arith_conv(node);
 		node->ty = node->lhs->ty;
+		return;
+	} else if (node->kind == ND_NEG) {
+		Type *ty = get_common_type(ty_int, node->lhs->ty);
+		node->lhs = new_cast(node->lhs, ty);
+		node->ty = ty;
 	} else if (node->kind == ND_ASSIGN) {
 		if (node->lhs->ty->kind == TY_ARRAY) {
 			error_tok(node->lhs->tok, "not an lvalue");
+		}
+		if (node->lhs->ty->kind != TY_STRUCT) {
+			node->rhs = new_cast(node->rhs, node->lhs->ty);
 		}
 		node->ty = node->lhs->ty;
 	} else if (node->kind == ND_EQ ||
 			node->kind == ND_NE ||
 			node->kind == ND_LT ||
-			node->kind == ND_LE ||
-			node->kind == ND_NUM ||
-			node->kind == ND_FUNCALL) {
-		// long vs int here is stylistic (long = int)
-		node->ty = ty_long;
+			node->kind == ND_LE) {
+		usual_arith_conv(node);
+		node->ty = ty_int;
+	} else if (node->kind == ND_FUNCALL) {
+		node->ty = ty_int;
 	} else if (node->kind == ND_VAR) {
 		node->ty = node->var->ty;
-		return;
 	} else if (node->kind == ND_COMMA) {
 		node->ty = node->rhs->ty;
-		return;
 	} else if (node->kind == ND_MEMBER) {
 		node->ty = node->member->ty;
-		return;
 	} else if (node->kind == ND_ADDR) {
 		if (node->lhs->ty->kind == TY_ARRAY) {
 			node->ty = pointer_to(node->lhs->ty->base);
@@ -144,6 +169,5 @@ void add_type(Node *node) {
 			}
 		}
 		error_tok(node->tok, "statement expression returning void is not supported");
-		return;
 	}
 }
