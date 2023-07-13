@@ -1,3 +1,5 @@
+int _assert_failed(int expected, int actual, char *code);
+
 int ret3();
 int addx();
 
