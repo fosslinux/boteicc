@@ -59,6 +59,7 @@ Token *tokenize_file(char *filename);
 #define TY_SHORT  8
 #define TY_VOID   9
 #define TY_BOOL  10
+#define TY_ENUM  11
 
 // XXX Ensure copy_type is updated when a field is added.
 struct Type {
@@ -113,6 +114,7 @@ Type *copy_type(Type *ty);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
 Type *array_of(Type *base, int size);
+Type *enum_type(void);
 void initialize_types(void);
 
 //

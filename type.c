@@ -30,7 +30,8 @@ int is_integer(Type *ty) {
 		k == TY_CHAR ||
 		k == TY_SHORT ||
 		k == TY_INT ||
-		k == TY_LONG;
+		k == TY_LONG ||
+		k == TY_ENUM;
 }
 
 Type *copy_type(Type *ty) {
@@ -66,6 +67,10 @@ Type *array_of(Type *base, int len) {
 	ty->base = base;
 	ty->array_len = len;
 	return ty;
+}
+
+Type *enum_type(void) {
+	return new_type(TY_ENUM, 4, 4);
 }
 
 Type *get_common_type(Type *ty1, Type *ty2) {
