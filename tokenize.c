@@ -161,7 +161,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "long") ||
 			equal(tok, "short") ||
 			equal(tok, "void") ||
-			equal(tok, "typedef")) {
+			equal(tok, "typedef") ||
+			equal(tok, "_Bool")) {
 		return TRUE;
 	}
 	return FALSE;

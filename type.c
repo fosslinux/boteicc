@@ -1,6 +1,7 @@
 #include "chibicc.h"
 
 Type *ty_void;
+Type *ty_bool;
 Type *ty_char;
 Type *ty_short;
 Type *ty_int;
@@ -16,6 +17,7 @@ Type *new_type(int kind, int size, int align) {
 
 void initialize_types(void) {
 	ty_void = new_type(TY_VOID, 1, 1);
+	ty_bool = new_type(TY_BOOL, 1, 1);
 	ty_char = new_type(TY_CHAR, 1, 1);
 	ty_short = new_type(TY_SHORT, 2, 2);
 	ty_int = new_type(TY_INT, 4, 4);
@@ -24,7 +26,8 @@ void initialize_types(void) {
 
 int is_integer(Type *ty) {
 	int k = ty->kind;
-	return k == TY_CHAR ||
+	return k == TY_BOOL ||
+		k == TY_CHAR ||
 		k == TY_SHORT ||
 		k == TY_INT ||
 		k == TY_LONG;

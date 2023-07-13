@@ -219,7 +219,8 @@ Type *find_typedef(Token *tok) {
 
 // Returns true if a given token represents a type.
 int is_typename(Token *tok) {
-	return equal(tok, "char") ||
+	return equal(tok, "_Bool") ||
+		equal(tok, "char") ||
 		equal(tok, "short") ||
 		equal(tok, "int") ||
 		equal(tok, "long") ||
@@ -250,7 +251,7 @@ Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 Token *parse_typedef(Token *tok, Type *basety);
 
-// declspec = ("void" | "char" | "short" | "int" | "long"
+// declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //          | "typedef"
 //          | struct-decl | union-decl | typedef-name)+
 //
@@ -268,11 +269,12 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 	int counter = 0;
 
 	int VOID   = 1 << 0;
-	int CHAR   = 1 << 2;
-	int SHORT  = 1 << 4;
-	int INT    = 1 << 6;
-	int LONG   = 1 << 8;
-	int OTHER  = 1 << 10;
+	int BOOL   = 1 << 2;
+	int CHAR   = 1 << 4;
+	int SHORT  = 1 << 6;
+	int INT    = 1 << 8;
+	int LONG   = 1 << 10;
+	int OTHER  = 1 << 12;
 
 	Type *ty = ty_int; // Default
 	
@@ -310,6 +312,8 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 		// Handle built-in types.
 		if (equal(tok, "void")) {
 			counter += VOID;
+		} else if (equal(tok, "_Bool")) {
+			counter += BOOL;
 		} else if (equal(tok, "char")) {
 			counter += CHAR;
 		} else if (equal(tok, "short")) {
@@ -324,6 +328,8 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 
 		if (counter == VOID) {
 			ty = ty_void;
+		} else if (counter == BOOL) {
+			ty = ty_bool;
 		} else if (counter == CHAR) {
 			ty = ty_char;
 		} else if (counter == SHORT || counter == SHORT + INT) {

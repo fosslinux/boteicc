@@ -51,6 +51,9 @@ int div_short(short a, short b) {
   return a / b;
 }
 
+_Bool bool_fn_add(_Bool x) { return x + 1; }
+_Bool bool_fn_sub(_Bool x) { return x - 1; }
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -74,6 +77,13 @@ int main() {
   _TEST_ASSERT(5, int_to_char(261));
   _TEST_ASSERT(5, int_to_char(261));
   _TEST_ASSERT(-5, div_short(-10, 2));
+
+  _TEST_ASSERT(1, bool_fn_add(3));
+  _TEST_ASSERT(0, bool_fn_sub(3));
+  _TEST_ASSERT(1, bool_fn_add(-3));
+  _TEST_ASSERT(0, bool_fn_sub(-3));
+  _TEST_ASSERT(1, bool_fn_add(0));
+  _TEST_ASSERT(1, bool_fn_sub(0));
 
   return 0;
 }

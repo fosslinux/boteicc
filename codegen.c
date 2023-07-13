@@ -155,6 +155,13 @@ void do_cast(Type *from, Type *to) {
 		return;
 	}
 
+	if (to->kind == TY_BOOL) {
+		emit("mov_ebx, %0");
+		emit("cmp");
+		emit("setne_al");
+		emit("movzx_eax,al");
+	}
+
 	int t1 = get_type_id(from);
 	int t2 = get_type_id(to);
 
