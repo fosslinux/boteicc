@@ -1,8 +1,3 @@
-int _assert_failed(int expected, int actual, char *code);
-
-int ret3();
-int addx();
-
 int ret3() {
   return 3;
   return 5;
@@ -47,12 +42,14 @@ int g1;
 int *g1_ptr() { return &g1; }
 char int_to_char(int x) { return x; }
 
-int div_short(short a, short b) {
+int div_long(long a, long b) {
   return a / b;
 }
 
 _Bool bool_fn_add(_Bool x) { return x + 1; }
 _Bool bool_fn_sub(_Bool x) { return x - 1; }
+
+static int static_fn() { return 3; }
 
 int main() {
   _TEST_ASSERT(3, ret3());
@@ -76,7 +73,7 @@ int main() {
   _TEST_ASSERT(3, *g1_ptr());
   _TEST_ASSERT(5, int_to_char(261));
   _TEST_ASSERT(5, int_to_char(261));
-  _TEST_ASSERT(-5, div_short(-10, 2));
+  _TEST_ASSERT(-5, div_long(-10, 2));
 
   _TEST_ASSERT(1, bool_fn_add(3));
   _TEST_ASSERT(0, bool_fn_sub(3));
@@ -84,6 +81,8 @@ int main() {
   _TEST_ASSERT(0, bool_fn_sub(-3));
   _TEST_ASSERT(1, bool_fn_add(0));
   _TEST_ASSERT(1, bool_fn_sub(0));
+
+  _TEST_ASSERT(3, static_fn());
 
   return 0;
 }

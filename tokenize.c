@@ -163,7 +163,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "void") ||
 			equal(tok, "typedef") ||
 			equal(tok, "_Bool") ||
-			equal(tok, "enum")) {
+			equal(tok, "enum") ||
+			equal(tok, "static")) {
 		return TRUE;
 	}
 	return FALSE;

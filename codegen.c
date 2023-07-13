@@ -1,8 +1,9 @@
 #include "chibicc.h"
 
-// Output functions
 FILE *output_file;
+Obj *functions;
 
+// Output functions
 void str_postfix(char *str, char *second) {
 	fputs(str, output_file);
 	fputs(second, output_file);
@@ -17,6 +18,8 @@ void emit(char *str) {
 	fputs(str, output_file);
 	fputc('\n', output_file);
 }
+
+int infile_id = 0;
 
 int depth;
 Obj *codegening_fn;
@@ -248,7 +251,21 @@ void gen_expr(Node *node) {
 		}
 
 		emit("mov_eax, %0");
-		str_postfix("call %FUNCTION_", node->funcname);
+
+		fputs("call %FUNCTION_", output_file);
+		// Handle static functions
+		Obj *fn;
+		for (fn = functions; fn; fn = fn->next) {
+			if (!strcmp(node->funcname, fn->name)) {
+				if (fn->is_static) {
+					fputs(uint2str(infile_id), output_file);
+					fputs("_", output_file);
+				}
+				break;
+			}
+		}
+		fputs(node->funcname, output_file);
+		fputc('\n', output_file);
 
 		// Stack cleanup
 		num_postfix("add_esp, %", nargs * 4);
@@ -412,7 +429,13 @@ void emit_text(Obj *prog) {
 		}
 
 		codegening_fn = fn;
-		str_postfix(":FUNCTION_", fn->name);
+		fputs(":FUNCTION_", output_file);
+		if (fn->is_static) {
+			fputs(uint2str(infile_id), output_file);
+			fputs("_", output_file);
+		}
+		fputs(fn->name, output_file);
+		fputc('\n', output_file);
 
 		// Prologue
 		emit("push_ebp");
@@ -454,7 +477,10 @@ void emit_text(Obj *prog) {
 void codegen(Obj *prog, FILE *out) {
 	output_file = out;
 
+	functions = prog;
 	assign_lvar_offsets(prog);
 	emit_data(prog);
 	emit_text(prog);
+
+	infile_id += 1;
 }

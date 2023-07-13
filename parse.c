@@ -48,6 +48,7 @@ typedef struct Scope Scope;
 // Variable attributes (eg, typedef, extern);
 struct VarAttr {
 	int is_typedef;
+	int is_static;
 };
 typedef struct VarAttr VarAttr;
 
@@ -231,6 +232,7 @@ int is_typename(Token *tok) {
 		equal(tok, "void") ||
 		equal(tok, "typedef") ||
 		equal(tok, "enum") ||
+		equal(tok, "static") ||
 		find_typedef(tok);
 }
 
@@ -1249,12 +1251,13 @@ void create_param_lvars(Type *param) {
 	}
 }
 
-Token *function(Token *tok, Type *basety) {
+Token *function(Token *tok, Type *basety, VarAttr *attr) {
 	Type *ty = declarator(&tok, tok, basety);
 
 	Obj *fn = new_gvar(get_ident(ty->name), ty);
 	fn->is_function = TRUE;
 	fn->is_definition = !consume(&tok, tok, ";");
+	fn->is_static = attr->is_static;
 
 	if (!fn->is_definition) {
 		return tok;
@@ -1323,7 +1326,7 @@ Obj *parse(Token *tok) {
 
 		// Function
 		if (is_function(tok)) {
-			tok = function(tok, basety);
+			tok = function(tok, basety, attr);
 			continue;
 		}
 
