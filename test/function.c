@@ -38,6 +38,15 @@ int sub_long(long a, long b, long c) {
   return a - b - c;
 }
 
+int sub_short(short a, short b, short c) {
+  return a - b - c;
+}
+
+int g1;
+
+int *g1_ptr() { return &g1; }
+char int_to_char(int x) { return x; }
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -53,6 +62,12 @@ int main() {
   _TEST_ASSERT(1, ({ sub_char(7, 3, 3); }));
 
   _TEST_ASSERT(1, sub_long(7, 3, 3));
+  _TEST_ASSERT(1, sub_short(7, 3, 3));
+
+  g1 = 3;
+
+  _TEST_ASSERT(3, *g1_ptr());
+  _TEST_ASSERT(5, int_to_char(261));
 
   return 0;
 }

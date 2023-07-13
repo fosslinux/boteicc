@@ -51,6 +51,9 @@ typedef struct VarAttr VarAttr;
 
 Scope *scope;
 
+// Points to the function currently being parsed.
+Obj *parsing_fn;
+
 // All variable instances created during parsing are accumulated
 // to these lists respectively.
 Obj *locals;
@@ -482,8 +485,11 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 Node *stmt(Token **rest, Token *tok) {
 	if (equal(tok, "return")) {
 		Node *node = new_node(ND_RETURN, tok);
-		node->lhs = expr(&tok, tok->next);
+		Node *exp = expr(&tok, tok->next);
 		*rest = skip(tok, ";");
+
+		add_type(exp);
+		node->lhs = new_cast(exp, parsing_fn->ty->return_ty);
 		return node;
 	}
 
@@ -1148,6 +1154,7 @@ Token *function(Token *tok, Type *basety) {
 		return tok;
 	}
 
+	parsing_fn = fn;
 	locals = NULL;
 	enter_scope();
 	create_param_lvars(ty->params);

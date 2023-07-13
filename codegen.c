@@ -19,7 +19,7 @@ void emit(char *str) {
 }
 
 int depth;
-Obj *current_fn;
+Obj *codegening_fn;
 
 void gen_expr(Node *node);
 void gen_stmt(Node *node);
@@ -336,7 +336,7 @@ void gen_stmt(Node *node) {
 		return;
 	} else if (node->kind == ND_RETURN) {
 		gen_expr(node->lhs);
-		str_postfix("jmp %BUILTIN_return_", current_fn->name);
+		str_postfix("jmp %BUILTIN_return_", codegening_fn->name);
 		return;
 	} else if (node->kind == ND_EXPR_STMT) {
 		gen_expr(node->lhs);
@@ -404,7 +404,7 @@ void emit_text(Obj *prog) {
 			continue;
 		}
 
-		current_fn = fn;
+		codegening_fn = fn;
 		str_postfix(":FUNCTION_", fn->name);
 
 		// Prologue
