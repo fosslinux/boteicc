@@ -166,6 +166,7 @@ typedef struct Obj Obj;
 #define ND_STMT_EXPR 20 // Statement expression [GNU]
 #define ND_COMMA     21 // ,
 #define ND_MEMBER    22 // .
+#define ND_CAST      23 // Type cast
 
 // AST node type
 struct Node {

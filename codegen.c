@@ -136,6 +136,43 @@ void store(Type *ty) {
 	mov_with_size(ty);
 }
 
+#define I8  0
+#define I16 1
+#define I32 2
+
+int get_type_id(Type *ty) {
+	if (ty->kind == TY_CHAR) {
+		return I8;
+	} else if (ty->kind == TY_SHORT) {
+		return I16;
+	} else {
+		return I32;
+	}
+}
+
+void do_cast(Type *from, Type *to) {
+	if (to->kind == TY_VOID) {
+		return;
+	}
+
+	int t1 = get_type_id(from);
+	int t2 = get_type_id(to);
+
+	if (t1 == I16 && t2 == I8 ||
+			t1 == I32 && t2 == I8) {
+		// TODO simplify
+		push("eax");
+		emit("lea_eax,[esp+DWORD] %0");
+		emit("movsx_eax,BYTE_PTR_[eax]");
+		pop("edi"); // irrelevant, just removes from stack
+	} else if (t1 == I32 && t2 == I16) {
+		push("eax");
+		emit("lea_eax,[esp+DWORD] %0");
+		emit("movsx_eax,WORD_PTR_[eax]");
+		pop("edi"); // irrelevant, just removes from stack
+	}
+}
+
 // Generate code for a given node.
 void gen_expr(Node *node) {
 	if (node->kind == ND_NUM) {
@@ -175,6 +212,10 @@ void gen_expr(Node *node) {
 	} else if (node->kind == ND_COMMA) {
 		gen_expr(node->lhs);
 		gen_expr(node->rhs);
+		return;
+	} else if (node->kind == ND_CAST) {
+		gen_expr(node->lhs);
+		do_cast(node->lhs->ty, node->ty);
 		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
