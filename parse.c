@@ -1000,18 +1000,31 @@ Node *funcall(Token **rest, Token *tok) {
 		error_tok(start, "not a function");
 	}
 
-	Type *ty = sc->var->ty->return_ty;
+	Type *ty = sc->var->ty;
+	Type *param_ty = ty->params;
 
 	Node *head = calloc(1, sizeof(Node));
 	Node *cur = head;
 
+	Node *arg;
 	while (!equal(tok, ")")) {
 		if (cur != head) {
 			tok = skip(tok, ",");
 		}
-		cur->next = assign(&tok, tok);
+		
+		arg = assign(&tok, tok);
+		add_type(arg);
+
+		if (param_ty) {
+			if (param_ty->kind == TY_STRUCT || param_ty->kind == TY_UNION) {
+				error_tok(arg->tok, "passing struct or union not yet supported");
+			}
+			arg = new_cast(arg, param_ty);
+			param_ty = param_ty->next;
+		}
+
+		cur->next = arg;
 		cur = cur->next;
-		add_type(cur);
 	}
 
 	*rest = skip(tok, ")");
@@ -1019,7 +1032,8 @@ Node *funcall(Token **rest, Token *tok) {
 	Node *node = new_node(ND_FUNCALL, start);
 	node->funcname = calloc(start->len + 1, sizeof(char));
 	strncpy(node->funcname, start->loc, start->len);
-	node->ty = ty;
+	node->func_ty = ty;
+	node->ty = ty->return_ty;
 	node->args = head->next;
 	return node;
 }

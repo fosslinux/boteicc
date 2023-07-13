@@ -47,6 +47,10 @@ int g1;
 int *g1_ptr() { return &g1; }
 char int_to_char(int x) { return x; }
 
+int div_short(short a, short b) {
+  return a / b;
+}
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -68,6 +72,8 @@ int main() {
 
   _TEST_ASSERT(3, *g1_ptr());
   _TEST_ASSERT(5, int_to_char(261));
+  _TEST_ASSERT(5, int_to_char(261));
+  _TEST_ASSERT(-5, div_short(-10, 2));
 
   return 0;
 }
