@@ -31,5 +31,14 @@ int main() {
 
   _TEST_ASSERT(0, 1073741824 * 100 / 100);
 
+  _TEST_ASSERT(7, ({ int i=2; i+=5; i; }));
+  _TEST_ASSERT(7, ({ int i=2; i+=5; }));
+  _TEST_ASSERT(3, ({ int i=5; i-=2; i; }));
+  _TEST_ASSERT(3, ({ int i=5; i-=2; }));
+  _TEST_ASSERT(6, ({ int i=3; i*=2; i; }));
+  _TEST_ASSERT(6, ({ int i=3; i*=2; }));
+  _TEST_ASSERT(3, ({ int i=6; i/=2; i; }));
+  _TEST_ASSERT(3, ({ int i=6; i/=2; }));
+
   return 0;
 }
