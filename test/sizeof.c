@@ -26,5 +26,7 @@ int main() {
   _TEST_ASSERT(4, sizeof((short)-10 * 5));
   _TEST_ASSERT(4, sizeof((short)-10 / 5));
 
+  _TEST_ASSERT(1, ({ char i; sizeof(++i); }));
+
   return 0;
 }

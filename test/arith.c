@@ -40,5 +40,9 @@ int main() {
   _TEST_ASSERT(3, ({ int i=6; i/=2; i; }));
   _TEST_ASSERT(3, ({ int i=6; i/=2; }));
 
+  _TEST_ASSERT(3, ({ int i=2; ++i; }));
+  _TEST_ASSERT(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; ++*p; }));
+  _TEST_ASSERT(0, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; --*p; }));
+
   return 0;
 }

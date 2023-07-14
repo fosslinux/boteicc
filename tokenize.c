@@ -140,7 +140,9 @@ int read_punct(char *p) {
 			startswith(p, "+=") || 
 			startswith(p, "-=") ||
 			startswith(p, "*=") ||
-			startswith(p, "/=")) {
+			startswith(p, "/=") ||
+			startswith(p, "++") ||
+			startswith(p, "--")) {
 		return 2;
 	}
 
