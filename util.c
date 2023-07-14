@@ -25,6 +25,28 @@ int isapunct(char c) {
 	return isagraph(c) && !(isaalpha(c) || isadigit(c));
 }
 
+// ctolower
+char ctolower(char c) {
+	if ('A' <= c && c <= 'Z') {
+		return c + 32;
+	} else {
+		return c;
+	}
+}
+
+char *stolower(char *s) {
+	char *out = calloc(strlen(s) + 1, sizeof(char));
+	char *result = out;
+	strcpy(out, s);
+	while (s[0] != '\0') {
+		out[0] = ctolower(*s);
+		out += 1;
+		s += 1;
+	}
+	out[0] = '\0';
+	return result;
+}
+
 // startswith
 int startswith(char *p, char *q) {
 	return strncmp(p, q, strlen(q)) == 0;
@@ -37,14 +59,6 @@ char *string_slice(char *original, char *end) {
 	strcpy(slice, original);
 	slice[diff] = '\0';
 	return slice;
-}
-
-// Get integer end
-char *integer_end(char *s) {
-	while (isadigit(*s)) {
-		s += 1;
-	}
-	return s;
 }
 
 char *uint2str(int i) {

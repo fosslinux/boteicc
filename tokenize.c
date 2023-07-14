@@ -292,6 +292,41 @@ Token *read_char_literal(char *start) {
 	return tok;
 }
 
+Token *read_int_literal(char *start) {
+	int base = 10;
+	char *p = start;
+	char *set = "0123456789";
+	if (!strncmp(stolower(string_slice(p, p+2)), "0x", 2) && (isadigit(*p) || isaalpha(*p))) {
+		p += 2;
+		base = 16;
+		set = "0123456789abcdef";
+	} else if (!strncmp(stolower(string_slice(p, p+2)), "0b", 2) && (isadigit(*p) || isaalpha(*p))) {
+		p += 2;
+		base = 2;
+		set = "01";
+	} else if (*p == '0') {
+		base = 8;
+		set = "01234567";
+	}
+
+	int val = 0;
+	int digit;
+	char *pos;
+	for (p; isadigit(*p) || isaalpha(*p); p += 1) {
+		pos = strchr(set, ctolower(*p));
+		if (pos == NULL) {
+			error_at(p, "invalid digit");
+		}
+		val *= base;
+		digit = pos - set;
+		val += digit;
+	}
+
+	Token *tok = new_token(TK_NUM, start, p);
+	tok->val = val;
+	return tok;
+}
+
 void convert_keywords(Token *tok) {
 	Token *t;
 	for (t = tok; t->kind != TK_EOF; t = t->next) {
@@ -361,12 +396,9 @@ Token *tokenize(char *filename, char *p) {
 
 		// Numeric literal
 		if (isadigit(*p)) {
-			cur->next = new_token(TK_NUM, p, p);
+			cur->next = read_int_literal(p);
 			cur = cur->next;
-			end = integer_end(p);
-			cur->val = strtoint(string_slice(p, end));
-			cur->len = end - p;
-			p = end;
+			p += cur->len;
 			continue;
 		}
 
