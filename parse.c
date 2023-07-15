@@ -245,6 +245,9 @@ Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 Node *assign(Token **rest, Token *tok);
+Node *bitor(Token **rest, Token *tok);
+Node *bitxor(Token **rest, Token *tok);
+Node *bitand(Token **rest, Token *tok);
 Node *equality(Token **rest, Token *tok);
 Node *relational(Token **rest, Token *tok);
 Node *add(Token **rest, Token *tok);
@@ -723,10 +726,10 @@ Node *to_assign(Node *binary) {
 	return new_binary(ND_COMMA, expr1, expr2, tok);
 }
 
-// assign    = equality (assign-op assign)?
-// assign-op = "=" | "+=" | "-=" | "*=" | "/="
+// assign    = bitor (assign-op assign)?
+// assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 Node *assign(Token **rest, Token *tok) {
-	Node *node = equality(&tok, tok);
+	Node *node = bitor(&tok, tok);
 
 	if (equal(tok, "=")) {
 		return new_binary(ND_ASSIGN, node, assign(rest, tok->next), tok);
@@ -752,6 +755,54 @@ Node *assign(Token **rest, Token *tok) {
 		return to_assign(new_binary(ND_MOD, node, assign(rest, tok->next), tok));
 	}
 
+	if (equal(tok, "&=")) {
+		return to_assign(new_binary(ND_BITAND, node, assign(rest, tok->next), tok));
+	}
+
+	if (equal(tok, "|=")) {
+		return to_assign(new_binary(ND_BITOR, node, assign(rest, tok->next), tok));
+	}
+
+	if (equal(tok, "^=")) {
+		return to_assign(new_binary(ND_BITXOR, node, assign(rest, tok->next), tok));
+	}
+
+	*rest = tok;
+	return node;
+}
+
+// bitor = bitxor ("|" bitxor)*
+Node *bitor(Token **rest, Token *tok) {
+	Node *node = bitxor(&tok, tok);
+	Token *start;
+	while (equal(tok, "|")) {
+		start = tok;
+		node = new_binary(ND_BITOR, node, bitxor(&tok, tok->next), start);
+	}
+	*rest = tok;
+	return node;
+}
+
+// bitxor = bitand ("^" bitand)*
+Node *bitxor(Token **rest, Token *tok) {
+	Node *node = bitand(&tok, tok);
+	Token *start;
+	while (equal(tok, "^")) {
+		start = tok;
+		node = new_binary(ND_BITXOR, node, bitand(&tok, tok->next), start);
+	}
+	*rest = tok;
+	return node;
+}
+
+// bitand = equality ("&" equality)*
+Node *bitand(Token **rest, Token *tok) {
+	Node *node = equality(&tok, tok);
+	Token *start;
+	while (equal(tok, "&")) {
+		start = tok;
+		node = new_binary(ND_BITAND, node, equality(&tok, tok->next), start);
+	}
 	*rest = tok;
 	return node;
 }

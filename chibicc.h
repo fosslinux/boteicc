@@ -175,6 +175,9 @@ typedef struct Obj Obj;
 #define ND_NOT       24 // !
 #define ND_BITNOT    25 // ~
 #define ND_MOD       26 // %
+#define ND_BITAND    27 // &
+#define ND_BITOR     28 // |
+#define ND_BITXOR    29 // ^
 
 // AST node type
 struct Node {

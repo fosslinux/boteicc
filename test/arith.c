@@ -77,5 +77,21 @@ int main() {
   _TEST_ASSERT(2, ({ int i=10; i%=4; i; }));
   _TEST_ASSERT(2, ({ long i=10; i%=4; i; }));
 
+  _TEST_ASSERT(0, 0&1);
+  _TEST_ASSERT(1, 3&1);
+  _TEST_ASSERT(3, 7&3);
+  _TEST_ASSERT(10, -1&10);
+
+  _TEST_ASSERT(1, 0|1);
+  _TEST_ASSERT(0b10011, 0b10000|0b00011);
+
+  _TEST_ASSERT(0, 0^0);
+  _TEST_ASSERT(0, 0b1111^0b1111);
+  _TEST_ASSERT(0b110100, 0b111000^0b001100);
+
+  _TEST_ASSERT(2, ({ int i=6; i&=3; i; }));
+  _TEST_ASSERT(7, ({ int i=6; i|=3; i; }));
+  _TEST_ASSERT(10, ({ int i=15; i^=5; i; }));
+
   return 0;
 }

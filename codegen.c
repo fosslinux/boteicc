@@ -312,6 +312,18 @@ void gen_expr(Node *node) {
 			emit("mov_eax,edx");
 		}
 		return;
+	} else if (node->kind == ND_BITAND) {
+		pop("ebx");
+		emit("and_eax,ebx");
+		return;
+	} else if (node->kind == ND_BITOR) {
+		pop("ebx");
+		emit("or_eax,ebx");
+		return;
+	} else if (node->kind == ND_BITXOR) {
+		pop("ebx");
+		emit("xor_eax,ebx");
+		return;
 	} else if (node->kind == ND_EQ || node->kind == ND_NE ||
 			node->kind == ND_LT || node->kind == ND_LE) {
 		emit("mov_ebx,eax");

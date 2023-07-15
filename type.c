@@ -122,7 +122,10 @@ void add_type(Node *node) {
 			node->kind == ND_SUB ||
 			node->kind == ND_MUL ||
 			node->kind == ND_DIV ||
-			node->kind == ND_MOD) {
+			node->kind == ND_MOD ||
+			node->kind == ND_BITAND ||
+			node->kind == ND_BITOR ||
+			node->kind == ND_BITXOR) {
 		usual_arith_conv(node);
 		node->ty = node->lhs->ty;
 		return;
