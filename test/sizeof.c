@@ -29,5 +29,8 @@ int main() {
   _TEST_ASSERT(1, ({ char i; sizeof(++i); }));
   _TEST_ASSERT(1, ({ char i; sizeof(i++); }));
 
+  _TEST_ASSERT(4, sizeof(int(*)[10]));
+  _TEST_ASSERT(4, sizeof(int(*)[][10]));
+
   return 0;
 }

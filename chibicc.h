@@ -97,6 +97,7 @@ typedef struct Type Type;
 struct Member {
 	struct Member *next;
 	Type *ty;
+	Token *tok;  // for error message
 	Token *name;
 	int offset;
 };

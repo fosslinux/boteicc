@@ -238,6 +238,7 @@ int is_typename(Token *tok) {
 
 Type *declspec(Token **rest, Token *tok, VarAttr *attr);
 Type *enum_specifier(Token **rest, Token *tok);
+Type *type_suffix(Token **rest, Token *tok, Type *ty);
 Type *declarator(Token **rest, Token *tok, Type *ty);
 Node *declaration(Token **rest, Token *tok, Type *basety);
 Node *compound_stmt(Token **rest, Token *tok);
@@ -397,8 +398,21 @@ Type *func_params(Token **rest, Token *tok, Type *ty) {
 	return ty;
 }
 
+// array-dimensions = num? "]" type-suffix
+Type *array_dimensions(Token **rest, Token *tok, Type *ty) {
+	if (equal(tok, "]")) {
+		ty = type_suffix(rest, tok->next, ty);
+		return array_of(ty, -1);
+	}
+
+	int sz = get_number(tok);
+	tok = skip(tok->next, "]");
+	ty = type_suffix(rest, tok, ty);
+	return array_of(ty, sz);
+}
+
 // type-suffix = "(" func-params
-//             | "[" num "]" type-suffix
+//             | "[" array-dimensions
 //             | ε
 Type *type_suffix(Token **rest, Token *tok, Type *ty) {
 	if (equal(tok, "(")) {
@@ -406,10 +420,7 @@ Type *type_suffix(Token **rest, Token *tok, Type *ty) {
 	}
 
 	if (equal(tok, "[")) {
-		int sz = get_number(tok->next);
-		tok = skip(tok->next->next, "]");
-		ty = type_suffix(rest, tok, ty);
-		return array_of(ty, sz);
+		return array_dimensions(rest, tok->next, ty);
 	}
 
 	*rest = tok;
@@ -546,6 +557,9 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 		i += 1;
 
 		ty = declarator(&tok, tok, basety);
+		if (ty->size < 0) {
+			error_tok(tok, "variable has incomplete type");
+		}
 		if (ty->kind == TY_VOID) {
 			error_tok(tok, "variable declared void");
 		}
