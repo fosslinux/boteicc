@@ -72,5 +72,10 @@ int main() {
   _TEST_ASSERT(-1, ~0);
   _TEST_ASSERT(0, ~-1);
 
+  _TEST_ASSERT(5, 17%6);
+  _TEST_ASSERT(5, ((long)17)%6);
+  _TEST_ASSERT(2, ({ int i=10; i%=4; i; }));
+  _TEST_ASSERT(2, ({ long i=10; i%=4; i; }));
+
   return 0;
 }

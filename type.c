@@ -121,7 +121,8 @@ void add_type(Node *node) {
 	} else if (node->kind == ND_ADD ||
 			node->kind == ND_SUB ||
 			node->kind == ND_MUL ||
-			node->kind == ND_DIV) {
+			node->kind == ND_DIV ||
+			node->kind == ND_MOD) {
 		usual_arith_conv(node);
 		node->ty = node->lhs->ty;
 		return;

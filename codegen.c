@@ -303,10 +303,14 @@ void gen_expr(Node *node) {
 		pop("ebx");
 		emit("imul_ebx");
 		return;
-	} else if (node->kind == ND_DIV) {
+	} else if (node->kind == ND_DIV || node->kind == ND_MOD) {
 		pop("ebx");
 		emit("cdq");
 		emit("idiv_ebx");
+
+		if (node->kind == ND_MOD) {
+			emit("mov_eax,edx");
+		}
 		return;
 	} else if (node->kind == ND_EQ || node->kind == ND_NE ||
 			node->kind == ND_LT || node->kind == ND_LE) {
