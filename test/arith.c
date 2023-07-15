@@ -61,5 +61,13 @@ int main() {
   _TEST_ASSERT(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; a[2]; }));
   _TEST_ASSERT(2, ({ int a[3]; a[0]=0; a[1]=1; a[2]=2; int *p=a+1; (*p++)--; *p; }));
 
+  _TEST_ASSERT(0, !1);
+  _TEST_ASSERT(0, !2);
+  _TEST_ASSERT(1, !0);
+  _TEST_ASSERT(1, !(char)0);
+  _TEST_ASSERT(0, !(long)3);
+  _TEST_ASSERT(4, sizeof(!(char)0));
+  _TEST_ASSERT(4, sizeof(!(long)0));
+
   return 0;
 }

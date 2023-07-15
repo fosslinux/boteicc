@@ -227,6 +227,13 @@ void gen_expr(Node *node) {
 		gen_expr(node->lhs);
 		do_cast(node->lhs->ty, node->ty);
 		return;
+	} else if (node->kind == ND_NOT) {
+		gen_expr(node->lhs);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		emit("sete_al");
+		emit("movzx_eax,al");
+		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
 		// Arguments are pushed onto the stack in right to left order.

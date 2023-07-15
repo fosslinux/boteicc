@@ -172,6 +172,7 @@ typedef struct Obj Obj;
 #define ND_COMMA     21 // ,
 #define ND_MEMBER    22 // .
 #define ND_CAST      23 // Type cast
+#define ND_NOT       24 // !
 
 // AST node type
 struct Node {
