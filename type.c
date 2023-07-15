@@ -148,7 +148,9 @@ void add_type(Node *node) {
 		usual_arith_conv(node);
 		node->ty = ty_int;
 	} else if (node->kind == ND_FUNCALL ||
-			node->kind == ND_NOT) {
+			node->kind == ND_NOT ||
+			node->kind == ND_LOGOR ||
+			node->kind == ND_LOGAND) {
 		node->ty = ty_int;
 	} else if (node->kind == ND_BITNOT) {
 		node->ty = node->lhs->ty;

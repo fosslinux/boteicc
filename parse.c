@@ -245,6 +245,8 @@ Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 Node *assign(Token **rest, Token *tok);
+Node *logor(Token **rest, Token *tok);
+Node *logand(Token **rest, Token *tok);
 Node *bitor(Token **rest, Token *tok);
 Node *bitxor(Token **rest, Token *tok);
 Node *bitand(Token **rest, Token *tok);
@@ -726,10 +728,10 @@ Node *to_assign(Node *binary) {
 	return new_binary(ND_COMMA, expr1, expr2, tok);
 }
 
-// assign    = bitor (assign-op assign)?
+// assign    = logor (assign-op assign)?
 // assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 Node *assign(Token **rest, Token *tok) {
-	Node *node = bitor(&tok, tok);
+	Node *node = logor(&tok, tok);
 
 	if (equal(tok, "=")) {
 		return new_binary(ND_ASSIGN, node, assign(rest, tok->next), tok);
@@ -767,6 +769,30 @@ Node *assign(Token **rest, Token *tok) {
 		return to_assign(new_binary(ND_BITXOR, node, assign(rest, tok->next), tok));
 	}
 
+	*rest = tok;
+	return node;
+}
+
+// logor = logand ("||" logand)*
+Node *logor(Token **rest, Token *tok) {
+	Node *node = logand(&tok, tok);
+	Token *start;
+	while (equal(tok, "||")) {
+		start = tok;
+		node = new_binary(ND_LOGOR, node, logand(&tok, tok->next), start);
+	}
+	*rest = tok;
+	return node;
+}
+
+// logand = bitor ("&&" bitor)*
+Node *logand(Token **rest, Token *tok) {
+	Node *node = bitor(&tok, tok);
+	Token *start;
+	while (equal(tok, "&&")) {
+		start = tok;
+		node = new_binary(ND_LOGAND, node, bitor(&tok, tok->next), start);
+	}
 	*rest = tok;
 	return node;
 }

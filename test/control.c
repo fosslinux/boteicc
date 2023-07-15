@@ -25,5 +25,14 @@ int main() {
   _TEST_ASSERT(55, ({ int j=0; for (int i=0; i<=10; i=i+1) j=j+i; j; }));
   _TEST_ASSERT(3, ({ int i=3; int j=0; for (int i=0; i<=10; i=i+1) j=j+i; i; }));
 
+  _TEST_ASSERT(1, 0||1);
+  _TEST_ASSERT(1, 0||(2-2)||5);
+  _TEST_ASSERT(0, 0||0);
+  _TEST_ASSERT(0, 0||(2-2));
+
+  _TEST_ASSERT(0, 0&&1);
+  _TEST_ASSERT(0, (2-2)&&5);
+  _TEST_ASSERT(1, 1&&5);
+
   return 0;
 }

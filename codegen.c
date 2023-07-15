@@ -238,6 +238,38 @@ void gen_expr(Node *node) {
 		gen_expr(node->lhs);
 		emit("not_eax");
 		return;
+	} else if (node->kind == ND_LOGAND) {
+		int c = count();
+		gen_expr(node->lhs);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		num_postfix("je %LOGAND_false_", c);
+		gen_expr(node->rhs);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		num_postfix("je %LOGAND_false_", c);
+		emit("mov_eax, %1");
+		num_postfix("jmp %LOGAND_end_", c);
+		num_postfix(":LOGAND_false_", c);
+		emit("mov_eax, %0");
+		num_postfix(":LOGAND_end_", c);
+		return;
+	} else if (node->kind == ND_LOGOR) {
+		int c = count();
+		gen_expr(node->lhs);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		num_postfix("jne %LOGOR_true_", c);
+		gen_expr(node->rhs);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		num_postfix("jne %LOGOR_true_", c);
+		emit("mov_eax, %0");
+		num_postfix("jmp %LOGOR_end_", c);
+		num_postfix(":LOGOR_true_", c);
+		emit("mov_eax, %1");
+		num_postfix(":LOGOR_end_", c);
+		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
 		// Arguments are pushed onto the stack in right to left order.
