@@ -69,5 +69,8 @@ int main() {
   _TEST_ASSERT(4, sizeof(!(char)0));
   _TEST_ASSERT(4, sizeof(!(long)0));
 
+  _TEST_ASSERT(-1, ~0);
+  _TEST_ASSERT(0, ~-1);
+
   return 0;
 }

@@ -234,6 +234,10 @@ void gen_expr(Node *node) {
 		emit("sete_al");
 		emit("movzx_eax,al");
 		return;
+	} else if (node->kind == ND_BITNOT) {
+		gen_expr(node->lhs);
+		emit("not_eax");
+		return;
 	} else if (node->kind == ND_FUNCALL) {
 		// We are using the cdecl calling convention.
 		// Arguments are pushed onto the stack in right to left order.

@@ -146,6 +146,8 @@ void add_type(Node *node) {
 	} else if (node->kind == ND_FUNCALL ||
 			node->kind == ND_NOT) {
 		node->ty = ty_int;
+	} else if (node->kind == ND_BITNOT) {
+		node->ty = node->lhs->ty;
 	} else if (node->kind == ND_VAR) {
 		node->ty = node->var->ty;
 	} else if (node->kind == ND_COMMA) {
