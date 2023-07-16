@@ -380,14 +380,24 @@ Type *func_params(Token **rest, Token *tok, Type *ty) {
 	Type *head = calloc(1, sizeof(Type));
 	Type *cur = head;
 
-	Type *basety;
 	Type *nextty;
+	Token *name;
 	while (!equal(tok, ")")) {
 		if (cur != head) {
 			tok = skip(tok, ",");
 		}
-		basety = declspec(&tok, tok, NULL);
-		nextty = declarator(&tok, tok, basety);
+
+		nextty = declspec(&tok, tok, NULL);
+		nextty = declarator(&tok, tok, nextty);
+
+		// "array of T" is converted to "pointer to T" onyl in the parameter
+		// context. Eg, *argv[] => **argv.
+		if (nextty->kind == TY_ARRAY) {
+			name = nextty->name;
+			nextty = pointer_to(nextty->base);
+			nextty->name = name;
+		}
+
 		cur->next = copy_type(nextty);
 		cur = cur->next;
 	}
