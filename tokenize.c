@@ -184,7 +184,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "enum") ||
 			equal(tok, "static") ||
 			equal(tok, "goto") ||
-			equal(tok, "break")) {
+			equal(tok, "break") ||
+			equal(tok, "continue")) {
 		return TRUE;
 	}
 	return FALSE;

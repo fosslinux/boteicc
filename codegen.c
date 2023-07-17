@@ -405,6 +405,7 @@ void gen_stmt(Node *node) {
 			str_postfix("je %GOTO_", node->brk_label);
 		}
 		gen_stmt(node->then);
+		str_postfix(":GOTO_", node->cont_label);
 		if (node->inc != NULL) {
 			gen_expr(node->inc);
 		}
