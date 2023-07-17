@@ -412,6 +412,28 @@ void gen_stmt(Node *node) {
 		num_postfix("jmp %FOR_begin_", c);
 		str_postfix(":GOTO_", node->brk_label);
 		return;
+	} else if (node->kind == ND_SWITCH) {
+		gen_expr(node->cond);
+
+		Node *n;
+		for (n = node->case_next; n; n = n->case_next) {
+			num_postfix("mov_ebx, %", n->val);
+			emit("cmp");
+			str_postfix("je %GOTO_", n->label);
+		}
+
+		if (node->default_case) {
+			str_postfix("jmp %GOTO_", node->default_case->label);
+		}
+
+		str_postfix("jmp %GOTO_", node->brk_label);
+		gen_stmt(node->then);
+		str_postfix(":GOTO_", node->brk_label);
+		return;
+	} else if (node->kind == ND_CASE) {
+		str_postfix(":GOTO_", node->label);
+		gen_stmt(node->lhs);
+		return;
 	} else if (node->kind == ND_BLOCK) {
 		Node *n;
 		for (n = node->body; n; n = n->next) {

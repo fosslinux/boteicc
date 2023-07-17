@@ -185,7 +185,9 @@ int is_keyword(Token *tok) {
 			equal(tok, "static") ||
 			equal(tok, "goto") ||
 			equal(tok, "break") ||
-			equal(tok, "continue")) {
+			equal(tok, "continue") ||
+			equal(tok, "switch") ||
+			equal(tok, "case")) {
 		return TRUE;
 	}
 	return FALSE;

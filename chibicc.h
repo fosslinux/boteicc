@@ -188,6 +188,8 @@ struct sObj {
 #define ND_LOGOR     31 // ||
 #define ND_GOTO      32 // "goto"
 #define ND_LABEL     33 // Labeled statement
+#define ND_SWITCH    34 // "switch"
+#define ND_CASE      35 // "case"
 
 // AST node type
 struct sNode {
@@ -226,8 +228,15 @@ struct sNode {
 	char *unique_label;
 	Node *goto_next;
 
-	Obj *var;          // Used if kind == ND_VAR
-	int32_t val;       // Used if kind == ND_NUM
+	// Switch-cases
+	Node *case_next;
+	Node *default_case;
+
+	// Variable
+	Obj *var;
+
+	// Numeric literal
+	int32_t val;
 };
 
 Node *new_cast(Node *expr, Type *ty);
