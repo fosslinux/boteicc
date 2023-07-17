@@ -34,5 +34,9 @@ int main() {
   _TEST_ASSERT(0, (2-2)&&5);
   _TEST_ASSERT(1, 1&&5);
 
+  _TEST_ASSERT(3, ({ int i=0; goto a; a: i++; b: i++; c: i++; i; }));
+  _TEST_ASSERT(2, ({ int i=0; goto e; d: i++; e: i++; f: i++; i; }));
+  _TEST_ASSERT(1, ({ int i=0; goto i; g: i++; h: i++; i: i++; i; }));
+
   return 0;
 }

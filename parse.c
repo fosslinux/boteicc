@@ -57,6 +57,10 @@ Scope *scope;
 // Points to the function currently being parsed.
 Obj *parsing_fn;
 
+// Lists of all goto statements and labels in the current function
+Node *gotos;
+Node *labels;
+
 // All variable instances created during parsing are accumulated
 // to these lists respectively.
 Obj *locals;
@@ -594,6 +598,8 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
+//      | "goto" ident ";"
+//      | ident ":" stmt
 //      | "{" compound-stmt
 //      | expr-stmt
 Node *stmt(Token **rest, Token *tok) {
@@ -654,6 +660,26 @@ Node *stmt(Token **rest, Token *tok) {
 		node->cond = expr(&tok, tok);
 		tok = skip(tok, ")");
 		node->then = stmt(rest, tok);
+		return node;
+	}
+
+	if (equal(tok, "goto")) {
+		Node *node = new_node(ND_GOTO, tok);
+		node->label = get_ident(tok->next);
+		node->goto_next = gotos;
+		gotos = node;
+		*rest = skip(tok->next->next, ";");
+		return node;
+	}
+
+	if (tok->kind == TK_IDENT && equal(tok->next, ":")) {
+		Node *node = new_node(ND_LABEL, tok);
+		node->label = calloc(tok->len + 1, sizeof(char));
+		strncpy(node->label, tok->loc, tok->len);
+		node->unique_label = new_unique_name();
+		node->lhs = stmt(rest, tok->next->next);
+		node->goto_next = labels;
+		labels = node;
 		return node;
 	}
 
@@ -1454,6 +1480,31 @@ void create_param_lvars(Type *param) {
 	}
 }
 
+// This function matches gotos with labels.
+//
+// We cannot resolve gotos in the same way as functions, because gotos can
+// refer to a label appearing later in the function.
+// Thus, this occurs after we parse the entire function.
+void resolve_goto_labels(void) {
+	Node *x;
+	Node *y;
+	for (x = gotos; x; x = x->goto_next) {
+		for (y = labels; y; y = y->goto_next) {
+			if (!strcmp(x->label, y->label)) {
+				x->unique_label = y->unique_label;
+				break;
+			}
+		}
+
+		if (x->unique_label == NULL) {
+			error_tok(x->tok->next, "use of undeclared label");
+		}
+	}
+
+	gotos = NULL;
+	labels = NULL;
+}
+
 Token *function(Token *tok, Type *basety, VarAttr *attr) {
 	Type *ty = declarator(&tok, tok, basety);
 
@@ -1476,6 +1527,7 @@ Token *function(Token *tok, Type *basety, VarAttr *attr) {
 	fn->body = compound_stmt(&tok, tok);
 	fn->locals = locals;
 	leave_scope();
+	resolve_goto_labels();
 	return tok;
 }
 

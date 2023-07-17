@@ -417,6 +417,13 @@ void gen_stmt(Node *node) {
 			gen_stmt(n);
 		}
 		return;
+	} else if (node->kind == ND_GOTO) {
+		str_postfix("jmp %GOTO_", node->unique_label);
+		return;
+	} else if (node->kind == ND_LABEL) {
+		str_postfix(":GOTO_", node->unique_label);
+		gen_stmt(node->lhs);
+		return;
 	} else if (node->kind == ND_RETURN) {
 		gen_expr(node->lhs);
 		str_postfix("jmp %BUILTIN_return_", codegening_fn->name);

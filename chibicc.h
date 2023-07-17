@@ -148,7 +148,7 @@ struct sObj {
 
 	// Function
 	Obj *params;
-	Node *body; // struct Node*
+	Node *body;
 	Obj *locals;
 	int stack_size;
 };
@@ -186,6 +186,8 @@ struct sObj {
 #define ND_BITXOR    29 // ^
 #define ND_LOGAND    30 // &&
 #define ND_LOGOR     31 // ||
+#define ND_GOTO      32 // "goto"
+#define ND_LABEL     33 // Labeled statement
 
 // AST node type
 struct sNode {
@@ -214,6 +216,11 @@ struct sNode {
 	char *funcname;
 	Type *func_ty;
 	Node *args;
+
+	// Goto or labeled statement
+	char *label;
+	char *unique_label;
+	Node *goto_next;
 
 	Obj *var;          // Used if kind == ND_VAR
 	int32_t val;       // Used if kind == ND_NUM
