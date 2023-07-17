@@ -9,6 +9,14 @@
 #define TRUE 1
 #define MAX_STRING 4096
 
+// Struct typedefs
+typedef struct sMember Member;
+typedef struct sType Type;
+typedef struct sNode Node;
+typedef struct sToken Token;
+typedef struct sObj Obj;
+typedef struct sNode Node;
+
 //
 // tokenize.c
 //
@@ -22,18 +30,17 @@
 #define TK_STR     5 // String literals
 
 // Token type
-struct Token {
+struct sToken {
 	int kind;           // Token kind
-    struct Token *next; // Next token
+	Token *next;        // Next token
 	int32_t val;        // If kind is TK_NUM, its value
 	char *loc;          // Token location
 	int len;            // Token length
-	void *ty;           // Type *; Used if TK_STR
+	Type *ty;           // Used if TK_STR
 	char *str;          // String literal contents including terminator
 
 	int line_no;        // Line number
 };
-typedef struct Token Token;
 
 void error(char *fmt);
 void error_at(char *loc, char *fmt);
@@ -62,7 +69,7 @@ Token *tokenize_file(char *filename);
 #define TY_ENUM  11
 
 // XXX Ensure copy_type is updated when a field is added.
-struct Type {
+struct sType {
 	int kind;
 
 	int size; // sizeof() value
@@ -75,7 +82,7 @@ struct Type {
 	// instead of "kind" to determine whether a type is a pointer or not. That
 	// means in many contexts "array of T" is naturally handled as if it was a
 	// "pointer to T", as required by the C spec.
-	struct Type *base;
+	Type *base;
 
 	// Declaration
 	Token *name;
@@ -84,24 +91,13 @@ struct Type {
 	int array_len;
 
 	// Struct
-	void *members;
+	Member *members;
 
 	// Function
-	struct Type *return_ty;
-	struct Type *params;
-	struct Type *next;
+	Type *return_ty;
+	Type *params;
+	Type *next;
 };
-typedef struct Type Type;
-
-// Struct member
-struct Member {
-	struct Member *next;
-	Type *ty;
-	Token *tok;  // for error message
-	Token *name;
-	int offset;
-};
-typedef struct Member Member;
 
 extern Type *ty_void;
 extern Type *ty_bool;
@@ -110,12 +106,22 @@ extern Type *ty_short;
 extern Type *ty_char;
 extern Type *ty_long;
 
+// Struct member
+struct sMember {
+	Member *next;
+	Type *ty;
+	Token *tok;  // for error message
+	Token *name;
+	int offset;
+};
+
 int is_integer(Type *ty);
 Type *copy_type(Type *ty);
 Type *pointer_to(Type *base);
 Type *func_type(Type *return_ty);
 Type *array_of(Type *base, int size);
 Type *enum_type(void);
+Type *struct_type(void);
 void initialize_types(void);
 
 //
@@ -123,8 +129,8 @@ void initialize_types(void);
 //
 
 // Variable or function
-struct Obj {
-	struct Obj *next;
+struct sObj {
+	Obj *next;
 	char *name;   // Variable name
 	Type *ty;     // Type
 	int is_local; // local or global/function
@@ -141,12 +147,11 @@ struct Obj {
 	char *init_data;
 
 	// Function
-	struct Obj *params;
-	void *body; // struct Node*
-	struct Obj *locals;
+	Obj *params;
+	Node *body; // struct Node*
+	Obj *locals;
 	int stack_size;
 };
-typedef struct Obj Obj;
 
 // AST node
 #define ND_ADD        0 // +
@@ -183,24 +188,24 @@ typedef struct Obj Obj;
 #define ND_LOGOR     31 // ||
 
 // AST node type
-struct Node {
+struct sNode {
 	int kind;          // Node kind
-	struct Node *next; // Next node
+	Node *next;        // Next node
 	Type *ty;          // Type, e.g. int or pointer to int
 	Token *tok;        // Representative token
 
-	struct Node *lhs;  // Left-hand side
-	struct Node *rhs;  // Right-hand side
+	Node *lhs;         // Left-hand side
+	Node *rhs;         // Right-hand side
 
 	// "if" or "for" statement
-	struct Node *cond;
-	struct Node *then;
-	struct Node *els;
-	struct Node *init;
-	struct Node *inc;
+	Node *cond;
+	Node *then;
+	Node *els;
+	Node *init;
+	Node *inc;
 
 	// Block or statement expression
-	struct Node *body;
+	Node *body;
 
 	// Struct member access
 	Member *member;
@@ -208,12 +213,11 @@ struct Node {
 	// Function call
 	char *funcname;
 	Type *func_ty;
-	struct Node *args;
+	Node *args;
 
 	Obj *var;          // Used if kind == ND_VAR
 	int32_t val;       // Used if kind == ND_NUM
 };
-typedef struct Node Node;
 
 Node *new_cast(Node *expr, Type *ty);
 Obj *parse(Token *tok);
