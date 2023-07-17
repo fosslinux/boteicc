@@ -38,5 +38,7 @@ int main() {
   _TEST_ASSERT(2, ({ int i=0; goto e; d: i++; e: i++; f: i++; i; }));
   _TEST_ASSERT(1, ({ int i=0; goto i; g: i++; h: i++; i: i++; i; }));
 
+  _TEST_ASSERT(1, ({ typedef int foo; goto foo; foo:; 1; }));
+
   return 0;
 }
