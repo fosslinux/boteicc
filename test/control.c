@@ -40,5 +40,10 @@ int main() {
 
   _TEST_ASSERT(1, ({ typedef int foo; goto foo; foo:; 1; }));
 
+  _TEST_ASSERT(3, ({ int i=0; for(;i<10;i++) { if (i == 3) break; } i; }));
+  _TEST_ASSERT(4, ({ int i=0; while (1) { if (i++ == 3) break; } i; }));
+  _TEST_ASSERT(3, ({ int i=0; for(;i<10;i++) { for (;;) break; if (i == 3) break; } i; }));
+  _TEST_ASSERT(4, ({ int i=0; while (1) { while(1) break; if (i++ == 3) break; } i; }));
+
   return 0;
 }

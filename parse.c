@@ -66,6 +66,9 @@ Node *labels;
 Obj *locals;
 Obj *globals;
 
+// Current "break" jump target.
+char *brk_label;
+
 void enter_scope(void) {
 	Scope *sc = calloc(1, sizeof(Scope));
 	sc->next = scope;
@@ -599,6 +602,7 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "goto" ident ";"
+//      | "break" ";"
 //      | ident ":" stmt
 //      | "{" compound-stmt
 //      | expr-stmt
@@ -632,6 +636,10 @@ Node *stmt(Token **rest, Token *tok) {
 
 		enter_scope();
 
+		char *brk = brk_label;
+		node->brk_label = new_unique_name();
+		brk_label = node->brk_label;
+
 		if (is_typename(tok)) {
 			Type *basety = declspec(&tok, tok, NULL);
 			node->init = declaration(&tok, tok, basety);
@@ -650,6 +658,7 @@ Node *stmt(Token **rest, Token *tok) {
 		tok = skip(tok, ")");
 
 		node->then = stmt(rest, tok);
+		brk_label = brk;
 		leave_scope();
 		return node;
 	}
@@ -659,7 +668,12 @@ Node *stmt(Token **rest, Token *tok) {
 		tok = skip(tok->next, "(");
 		node->cond = expr(&tok, tok);
 		tok = skip(tok, ")");
+
+		char *brk = brk_label;
+		node->brk_label = new_unique_name();
+		brk_label = node->brk_label;
 		node->then = stmt(rest, tok);
+		brk_label = brk;
 		return node;
 	}
 
@@ -669,6 +683,16 @@ Node *stmt(Token **rest, Token *tok) {
 		node->goto_next = gotos;
 		gotos = node;
 		*rest = skip(tok->next->next, ";");
+		return node;
+	}
+
+	if (equal(tok, "break")) {
+		if (brk_label == NULL) {
+			error_tok(tok, "stray break");
+		}
+		Node *node = new_node(ND_GOTO, tok);
+		node->unique_label = brk_label;
+		*rest = skip(tok->next, ";");
 		return node;
 	}
 

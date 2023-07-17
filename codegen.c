@@ -402,14 +402,14 @@ void gen_stmt(Node *node) {
 			gen_expr(node->cond);
 			emit("mov_ebx, %0");
 			emit("cmp");
-			num_postfix("je %FOR_end_", c);
+			str_postfix("je %GOTO_", node->brk_label);
 		}
 		gen_stmt(node->then);
 		if (node->inc != NULL) {
 			gen_expr(node->inc);
 		}
 		num_postfix("jmp %FOR_begin_", c);
-		num_postfix(":FOR_end_", c);
+		str_postfix(":GOTO_", node->brk_label);
 		return;
 	} else if (node->kind == ND_BLOCK) {
 		Node *n;
