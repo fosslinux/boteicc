@@ -237,7 +237,7 @@ int is_typename(Token *tok) {
 		equal(tok, "typedef") ||
 		equal(tok, "enum") ||
 		equal(tok, "static") ||
-		find_typedef(tok);
+		find_typedef(tok) != NULL;
 }
 
 Type *declspec(Token **rest, Token *tok, VarAttr *attr);
@@ -1379,7 +1379,7 @@ Node *primary(Token **rest, Token *tok) {
 		return node;
 	}
 
-	if (equal(tok, "sizeof") && equal(tok->next, "(") && is_typename(tok->next->next) != NULL) {
+	if (equal(tok, "sizeof") && equal(tok->next, "(") && is_typename(tok->next->next)) {
 		Type *ty = typename(&tok, tok->next->next);
 		*rest = skip(tok, ")");
 		return new_num(ty->size, start);
