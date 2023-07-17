@@ -147,7 +147,9 @@ void add_type(Node *node) {
 			node->kind == ND_LOGOR ||
 			node->kind == ND_LOGAND) {
 		node->ty = ty_int;
-	} else if (node->kind == ND_BITNOT) {
+	} else if (node->kind == ND_BITNOT ||
+			node->kind == ND_SHL ||
+			node->kind == ND_SHR) {
 		node->ty = node->lhs->ty;
 	} else if (node->kind == ND_VAR) {
 		node->ty = node->var->ty;

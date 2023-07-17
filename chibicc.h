@@ -190,6 +190,8 @@ struct sObj {
 #define ND_LABEL     33 // Labeled statement
 #define ND_SWITCH    34 // "switch"
 #define ND_CASE      35 // "case"
+#define ND_SHL       36 // <<
+#define ND_SHR       37 // >>
 
 // AST node type
 struct sNode {

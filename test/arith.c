@@ -93,5 +93,18 @@ int main() {
   _TEST_ASSERT(7, ({ int i=6; i|=3; i; }));
   _TEST_ASSERT(10, ({ int i=15; i^=5; i; }));
 
+  _TEST_ASSERT(1, 1<<0);
+  _TEST_ASSERT(8, 1<<3);
+  _TEST_ASSERT(10, 5<<1);
+  _TEST_ASSERT(2, 5>>1);
+  _TEST_ASSERT(-1, -1>>1);
+  _TEST_ASSERT(1, ({ int i=1; i<<=0; i; }));
+  _TEST_ASSERT(8, ({ int i=1; i<<=3; i; }));
+  _TEST_ASSERT(10, ({ int i=5; i<<=1; i; }));
+  _TEST_ASSERT(2, ({ int i=5; i>>=1; i; }));
+  _TEST_ASSERT(-1, -1);
+  _TEST_ASSERT(-1, ({ int i=-1; i; }));
+  _TEST_ASSERT(-1, ({ int i=-1; i>>=1; i; }));
+
   return 0;
 }

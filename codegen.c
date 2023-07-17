@@ -372,6 +372,22 @@ void gen_expr(Node *node) {
 		}
 		emit("movzx_eax,al");
 		return;
+	} else if (node->kind == ND_SHL) {
+		// TODO simplify
+		emit("mov_ebx,eax");
+		pop("eax");
+		emit("mov_ecx,eax");
+		emit("mov_eax,ebx");
+		emit("shl_eax,cl");
+		return;
+	} else if (node->kind == ND_SHR) {
+		// TODO simplify
+		emit("mov_ebx,eax");
+		pop("eax");
+		emit("mov_ecx,eax");
+		emit("mov_eax,ebx");
+		emit("sar_eax,cl");
+		return;
 	}
 
 	error_tok(node->tok, "invalid expression");
