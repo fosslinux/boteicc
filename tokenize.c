@@ -295,7 +295,7 @@ Token *read_char_literal(char *start) {
 	}
 
 	char *end = strchr(p, '\'');
-	if (!end) {
+	if (end == NULL) {
 		error_at(p, "unclosed char literal");
 	}
 

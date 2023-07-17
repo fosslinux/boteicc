@@ -69,7 +69,7 @@ Type *struct_type(void) {
 }
 
 Type *get_common_type(Type *ty1, Type *ty2) {
-	if (ty1->base) {
+	if (ty1->base != NULL) {
 		return pointer_to(ty1->base);
 	}
 	return ty_int;
@@ -88,10 +88,10 @@ void usual_arith_conv(Node *node) {
 
 // Adds typing information to a given node.
 void add_type(Node *node) {
-	if (!node) {
+	if (node == NULL) {
 		return;
 	}
-	if (node->ty) {
+	if (node->ty != NULL) {
 		return;
 	}
 
@@ -162,7 +162,7 @@ void add_type(Node *node) {
 			node->ty = pointer_to(node->lhs->ty);
 		}
 	} else if (node->kind == ND_DEREF) {
-		if (!node->lhs->ty->base) {
+		if (node->lhs->ty->base == NULL) {
 			error_tok(node->tok, "invalid pointer dereference");
 		}
 		if (node->lhs->ty->base->kind == TY_VOID) {
@@ -170,7 +170,7 @@ void add_type(Node *node) {
 		}
 		node->ty = node->lhs->ty->base;
 	} else if (node->kind == ND_STMT_EXPR) {
-		if (node->body) {
+		if (node->body != NULL) {
 			Node *stmt = node->body;
 			while (stmt->next) {
 				stmt = stmt->next;

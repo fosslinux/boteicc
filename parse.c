@@ -213,7 +213,7 @@ void push_tag_scope(Token *tok, Type *ty) {
 Type *find_typedef(Token *tok) {
 	if (tok->kind == TK_IDENT) {
 		VarScope *sc = find_var(tok);
-		if (sc) {
+		if (sc != NULL) {
 			return sc->type_def;
 		}
 	}
@@ -297,7 +297,7 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 	while (is_typename(tok)) {
 		// Handle storage class specifiers.
 		if (equal(tok, "typedef") || equal(tok, "static")) {
-			if (!attr) {
+			if (attr == NULL) {
 				error_tok(tok, "storage class specifier is not allowed in this context");
 			}
 			if (equal(tok, "typedef")) {
@@ -315,7 +315,7 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 
 		// User-defined types.
 		ty2 = find_typedef(tok);
-		if (equal(tok, "struct") || equal(tok, "union") || equal(tok, "enum") || ty2) {
+		if (equal(tok, "struct") || equal(tok, "union") || equal(tok, "enum") || ty2 != NULL) {
 			if (counter) {
 				break;
 			}
@@ -390,7 +390,7 @@ Type *func_params(Token **rest, Token *tok, Type *ty) {
 		nextty = declspec(&tok, tok, NULL);
 		nextty = declarator(&tok, tok, nextty);
 
-		// "array of T" is converted to "pointer to T" onyl in the parameter
+		// "array of T" is converted to "pointer to T" only in the parameter
 		// context. Eg, *argv[] => **argv.
 		if (nextty->kind == TY_ARRAY) {
 			name = nextty->name;
@@ -499,19 +499,16 @@ Type *enum_specifier(Token **rest, Token *tok){
 		tok = tok->next;
 	}
 
-	// TODO another M2-Planet &&
-	if (tag) {
-		if (!equal(tok, "{")) {
-			Type *ty = find_tag(tag);
-			if (!ty) {
-				error_tok(tag, "unknown enum type");
-			}
-			if (ty->kind != TY_ENUM) {
-				error_tok(tag, "not an enum tag");
-			}
-			*rest = tok;
-			return ty;
+	if (tag != NULL && !equal(tok, "{")) {
+		Type *ty = find_tag(tag);
+		if (ty == NULL) {
+			error_tok(tag, "unknown enum type");
 		}
+		if (ty->kind != TY_ENUM) {
+			error_tok(tag, "not an enum tag");
+		}
+		*rest = tok;
+		return ty;
 	}
 
 	tok = skip(tok, "{");
@@ -543,7 +540,7 @@ Type *enum_specifier(Token **rest, Token *tok){
 
 	*rest = tok->next;
 
-	if (tag) {
+	if (tag != NULL) {
 		push_tag_scope(tag, ty);
 	}
 	return ty;
@@ -911,7 +908,6 @@ Node *relational(Token **rest, Token *tok) {
 	}
 }
 
-// TODO: M2-Planet bug where we cannot && some of the conditions below.
 // I cannot be bothered to figure out which ones do it when, because it only
 // occurs under weird conditions.
 // So in these two functions we do not use &&.
@@ -926,26 +922,20 @@ Node *new_add(Node *lhs, Node *rhs, Token *tok) {
 	add_type(rhs);
 
 	// num + num
-	if (is_integer(lhs->ty)) {
-		if (is_integer(rhs->ty)) {
-			return new_binary(ND_ADD, lhs, rhs, tok);
-		}
+	if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+		return new_binary(ND_ADD, lhs, rhs, tok);
 	}
 
 	// ptr + ptr
-	if (lhs->ty->base) {
-		if (rhs->ty->base) {
-			error_tok(tok, "invalid operands");
-		}
+	if (lhs->ty->base != NULL && rhs->ty->base != NULL) {
+		error_tok(tok, "invalid operands");
 	}
 
 	// Canonicalize `num + ptr` to `ptr + num`.
-	if (!lhs->ty->base) {
-		if (rhs->ty->base) {
-			Node *tmp = lhs;
-			lhs = rhs;
-			rhs = tmp;
-		}
+	if (lhs->ty->base == NULL && rhs->ty->base != NULL) {
+		Node *tmp = lhs;
+		lhs = rhs;
+		rhs = tmp;
 	}
 
 	// ptr + num
@@ -959,30 +949,24 @@ Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
 	add_type(rhs);
 
 	// num - num
-	if (is_integer(lhs->ty)) {
-		if (is_integer(rhs->ty)) {
-			return new_binary(ND_SUB, lhs, rhs, tok);
-		}
+	if (is_integer(lhs->ty) && is_integer(rhs->ty)) {
+		return new_binary(ND_SUB, lhs, rhs, tok);
 	}
 
 	// ptr - num
-	if (lhs->ty->base) {
-		if (is_integer(rhs->ty)) {
-    		rhs = new_binary(ND_MUL, rhs, new_num(lhs->ty->base->size, tok), tok);
-    		add_type(rhs);
-    		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
-    		node->ty = lhs->ty;
-    		return node;
-		}
+	if (lhs->ty->base != NULL && is_integer(rhs->ty)) {
+		rhs = new_binary(ND_MUL, rhs, new_num(lhs->ty->base->size, tok), tok);
+		add_type(rhs);
+		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
+		node->ty = lhs->ty;
+		return node;
 	}
 
 	// ptr - ptr, which returns how many elements are between the two.
-	if (lhs->ty->base) {
-		if (rhs->ty->base) {
-			Node *node = new_binary(ND_SUB, lhs, rhs, tok);
-			node->ty = ty_int;
-			return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
-		}
+	if (lhs->ty->base != NULL && rhs->ty->base != NULL) {
+		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
+		node->ty = ty_int;
+		return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
 	}
 
 	error_tok(tok, "invalid operands");
@@ -1135,7 +1119,7 @@ Type *struct_union_decl(Token **rest, Token *tok) {
 		*rest = tok;
 
 		Type *ty = find_tag(tag);
-		if (ty) {
+		if (ty != NULL) {
 			return ty;
 		}
 
@@ -1151,7 +1135,7 @@ Type *struct_union_decl(Token **rest, Token *tok) {
 	Type *ty = struct_type();
 	struct_members(rest, tok, ty);
 
-	if (tag) {
+	if (tag != NULL) {
 		// If this is a redefinition, overwrite the previous type; otherwise,
 		// register the struct type.
 		TagScope *sc;
@@ -1298,10 +1282,10 @@ Node *funcall(Token **rest, Token *tok) {
 	tok = tok->next->next;
 
 	VarScope *sc = find_var(start);
-	if (!sc) {
+	if (sc == NULL) {
 		error_tok(start, "implicit declaration of a function");
 	}
-	if (!sc->var || sc->var->ty->kind != TY_FUNC) {
+	if (sc->var == NULL || sc->var->ty->kind != TY_FUNC) {
 		error_tok(start, "not a function");
 	}
 
@@ -1320,7 +1304,7 @@ Node *funcall(Token **rest, Token *tok) {
 		arg = assign(&tok, tok);
 		add_type(arg);
 
-		if (param_ty) {
+		if (param_ty != NULL) {
 			if (param_ty->kind == TY_STRUCT || param_ty->kind == TY_UNION) {
 				error_tok(arg->tok, "passing struct or union not yet supported");
 			}
@@ -1369,7 +1353,7 @@ Node *primary(Token **rest, Token *tok) {
 		return node;
 	}
 
-	if (equal(tok, "sizeof") && equal(tok->next, "(") && is_typename(tok->next->next)) {
+	if (equal(tok, "sizeof") && equal(tok->next, "(") && is_typename(tok->next->next) != NULL) {
 		Type *ty = typename(&tok, tok->next->next);
 		*rest = skip(tok, ")");
 		return new_num(ty->size, start);
@@ -1412,15 +1396,15 @@ Node *primary(Token **rest, Token *tok) {
 		// Variable or enum constant
 		VarScope *sc = find_var(tok);
 		// If variable not yet set
-		if (!sc) {
+		if (sc == NULL) {
 			error_tok(tok, "undefined variable");
 		}
-		if (!sc->var && !sc->enum_ty) {
+		if (sc->var == NULL && sc->enum_ty == NULL) {
 			error_tok(tok, "undefined variable");
 		}
 
 		Node *node;
-		if (sc->var) {
+		if (sc->var != NULL) {
 			node = new_var_node(sc->var, tok);
 		} else {
 			node = new_num(sc->enum_val, tok);
@@ -1464,7 +1448,7 @@ Token *parse_typedef(Token *tok, Type *basety) {
 }
 
 void create_param_lvars(Type *param) {
-	if (param) {
+	if (param != NULL) {
 		create_param_lvars(param->next);
 		new_lvar(get_ident(param->name), param);
 	}

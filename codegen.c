@@ -387,25 +387,25 @@ void gen_stmt(Node *node) {
 		gen_stmt(node->then);
 		num_postfix("jmp %IF_end_", c);
 		num_postfix(":IF_else_", c);
-		if (node->els) {
+		if (node->els != NULL) {
 			gen_stmt(node->els);
 		}
 		num_postfix(":IF_end_", c);
 		return;
 	} else if (node->kind == ND_FOR) {
 		int c = count();
-		if (node->init) {
+		if (node->init != NULL) {
 			gen_stmt(node->init);
 		}
 		num_postfix(":FOR_begin_", c);
-		if (node->cond) {
+		if (node->cond != NULL) {
 			gen_expr(node->cond);
 			emit("mov_ebx, %0");
 			emit("cmp");
 			num_postfix("je %FOR_end_", c);
 		}
 		gen_stmt(node->then);
-		if (node->inc) {
+		if (node->inc != NULL) {
 			gen_expr(node->inc);
 		}
 		num_postfix("jmp %FOR_begin_", c);
@@ -461,7 +461,7 @@ void emit_data(Obj *prog) {
 		}
 		str_postfix(":GLOBAL_", var->name);
 		zero_count = var->ty->size;
-		if (var->init_data) {
+		if (var->init_data != NULL) {
 			for (i = 0; i < var->ty->size; i += 1) {
 				fputc('!', output_file);
 				fputs(uint2str(var->init_data[i]), output_file);
