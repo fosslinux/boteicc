@@ -1131,26 +1131,37 @@ Type *struct_union_decl(Token **rest, Token *tok) {
 		tok = tok->next;
 	}
 
-	// TODO also M2-Planet && borked
-	if (tag) {
-		if (!equal(tok, "{")) {
-			Type *ty = find_tag(tag);
-			if (!ty) {
-				error_tok(tag, "unknown struct type");
-			}
-			*rest = tok;
+	if (tag != NULL && !equal(tok, "{")) {
+		*rest = tok;
+
+		Type *ty = find_tag(tag);
+		if (ty) {
 			return ty;
 		}
+
+		ty = struct_type();
+		ty->size = -1;
+		push_tag_scope(tag, ty);
+		return ty;
 	}
 
-	// Construct the struct object.
-	Type *ty = calloc(1, sizeof(Type));
-	ty->kind = TY_STRUCT;
-	struct_members(rest, tok->next, ty);
-	ty->align = 1;
+	tok = skip(tok, "{");
 
-	// Register the struct type if a name was given.
+	// Construct the struct object.
+	Type *ty = struct_type();
+	struct_members(rest, tok, ty);
+
 	if (tag) {
+		// If this is a redefinition, overwrite the previous type; otherwise,
+		// register the struct type.
+		TagScope *sc;
+		for (sc = scope->tags; sc; sc = sc->next) {
+			if (equal(tag, sc->name)) {
+				memcpy(sc->ty, ty, sizeof(Type));
+				return sc->ty;
+			}
+		}
+
 		push_tag_scope(tag, ty);
 	}
 	return ty;
@@ -1160,6 +1171,10 @@ Type *struct_union_decl(Token **rest, Token *tok) {
 Type *struct_decl(Token **rest, Token *tok) {
 	Type *ty = struct_union_decl(rest, tok);
 	ty->kind = TY_STRUCT;
+
+	if (ty->size < 0) {
+		return ty;
+	}
 
 	// Assign offsets within the struct to members.
 	int offset = 0;
@@ -1181,6 +1196,10 @@ Type *struct_decl(Token **rest, Token *tok) {
 Type *union_decl(Token **rest, Token *tok) {
 	Type *ty = struct_union_decl(rest, tok);
 	ty->kind = TY_UNION;
+
+	if (ty->size < 0) {
+		return ty;
+	}
 
 	// Offsets are not needed - they are already initialized to zero.
 	// We need to compute alignment and size.

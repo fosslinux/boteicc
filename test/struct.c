@@ -48,6 +48,12 @@ int main() {
   _TEST_ASSERT(8, ({ struct t {int a; int b;}; struct t y; sizeof(y); }));
 
   _TEST_ASSERT(8, ({ struct {char a; long b;} x; sizeof(x); }));
+  _TEST_ASSERT(4, ({ struct {char a; short b;} x; sizeof(x); }));
+
+  _TEST_ASSERT(4, ({ struct foo *bar; sizeof(bar); }));
+  _TEST_ASSERT(4, ({ struct T *foo; struct T {int x;}; sizeof(struct T); }));
+  _TEST_ASSERT(1, ({ struct T { struct T *next; int x; } a; struct T b; b.x=1; a.next=&b; a.next->x; }));
+  _TEST_ASSERT(4, ({ typedef struct T T; struct T { int x; }; sizeof(T); }));
 
   return 0;
 }
