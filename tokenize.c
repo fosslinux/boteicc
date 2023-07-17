@@ -21,21 +21,27 @@ void error_line_at(int line_no, char *loc, char *fmt) {
 		end += 1;
 	}
 
+	char *start = loc;
+	while (*start != '\n') {
+		start -= 1;
+	}
+	start += 1;
+
 	// Print the line.
 	fputs(current_filename, stderr);
 	fputc(':', stderr);
 	fputs(uint2str(line_no), stderr);
 	fputs(": ", stderr);
 	int i;
-	for (i = 0; i < end - loc; i += 1) {
-		fputc(loc[i], stderr);
+	for (i = 0; i < end - start; i += 1) {
+		fputc(start[i], stderr);
 	}
 	fputc('\n', stderr);
 
 	// Show the error message.
 	int indent = strlen(current_filename) + strlen(uint2str(line_no)) + 3;
 	// TODO indent tabs
-	int pos = end - loc + indent;
+	int pos = loc - start + indent;
 
 	for (i = 0; i < pos; i += 1) {
 		fputc(' ', stderr);
