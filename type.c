@@ -80,11 +80,6 @@ Type *get_common_type(Type *ty1, Type *ty2) {
 // Eg, any integral type smaller than int is promoted to int.
 //
 // This is called the "usual arithmetic conversion".
-void usual_arith_conv(Node *node) {
-	Type *ty = get_common_type(node->lhs->ty, node->rhs->ty);
-	node->lhs = new_cast(node->lhs, ty);
-	node->rhs = new_cast(node->rhs, ty);
-}
 
 // Adds typing information to a given node.
 void add_type(Node *node) {
@@ -121,7 +116,10 @@ void add_type(Node *node) {
 			node->kind == ND_BITAND ||
 			node->kind == ND_BITOR ||
 			node->kind == ND_BITXOR) {
-		usual_arith_conv(node);
+		// usual arithmetic conversion
+		Type *ty = get_common_type(node->lhs->ty, node->rhs->ty);
+		node->lhs = new_cast(node->lhs, ty);
+		node->rhs = new_cast(node->rhs, ty);
 		node->ty = node->lhs->ty;
 		return;
 	} else if (node->kind == ND_NEG) {
@@ -140,7 +138,10 @@ void add_type(Node *node) {
 			node->kind == ND_NE ||
 			node->kind == ND_LT ||
 			node->kind == ND_LE) {
-		usual_arith_conv(node);
+		// usual arithmetic conversion
+		Type *ty = get_common_type(node->lhs->ty, node->rhs->ty);
+		node->lhs = new_cast(node->lhs, ty);
+		node->rhs = new_cast(node->rhs, ty);
 		node->ty = ty_int;
 	} else if (node->kind == ND_FUNCALL ||
 			node->kind == ND_NOT ||
@@ -153,6 +154,16 @@ void add_type(Node *node) {
 		node->ty = node->lhs->ty;
 	} else if (node->kind == ND_VAR) {
 		node->ty = node->var->ty;
+	} else if (node->kind == ND_COND) {
+		if (node->then->ty->kind == TY_VOID || node->els->ty->kind == TY_VOID) {
+			node->ty = ty_void;
+		} else {
+			// usual arithmetic conversion
+			Type *ty = get_common_type(node->then->ty, node->els->ty);
+			node->then = new_cast(node->then, ty);
+			node->els = new_cast(node->els, ty);
+			node->ty = node->then->ty;
+		}
 	} else if (node->kind == ND_COMMA) {
 		node->ty = node->rhs->ty;
 	} else if (node->kind == ND_MEMBER) {

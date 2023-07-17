@@ -227,6 +227,18 @@ void gen_expr(Node *node) {
 		gen_expr(node->lhs);
 		do_cast(node->lhs->ty, node->ty);
 		return;
+	} else if (node->kind == ND_COND) {
+		int c = count();
+		gen_expr(node->cond);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		num_postfix("je %COND_else_", c);
+		gen_expr(node->then);
+		num_postfix("jmp %COND_end_", c);
+		num_postfix(":COND_else_", c);
+		gen_expr(node->els);
+		num_postfix(":COND_end_", c);
+		return;
 	} else if (node->kind == ND_NOT) {
 		gen_expr(node->lhs);
 		emit("mov_ebx, %0");

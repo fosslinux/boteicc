@@ -192,6 +192,7 @@ struct sObj {
 #define ND_CASE      35 // "case"
 #define ND_SHL       36 // <<
 #define ND_SHR       37 // >>
+#define ND_COND      38 // ?:
 
 // AST node type
 struct sNode {
