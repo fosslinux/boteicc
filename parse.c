@@ -259,6 +259,7 @@ Node *expr_stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 Node *assign(Token **rest, Token *tok);
 Node *logor(Token **rest, Token *tok);
+int32_t const_expr(Token **rest, Token *tok);
 Node *conditional(Token **rest, Token *tok);
 Node *logand(Token **rest, Token *tok);
 Node *bitor(Token **rest, Token *tok);
@@ -422,15 +423,15 @@ Type *func_params(Token **rest, Token *tok, Type *ty) {
 	return ty;
 }
 
-// array-dimensions = num? "]" type-suffix
+// array-dimensions = const-expr? "]" type-suffix
 Type *array_dimensions(Token **rest, Token *tok, Type *ty) {
 	if (equal(tok, "]")) {
 		ty = type_suffix(rest, tok->next, ty);
 		return array_of(ty, -1);
 	}
 
-	int sz = get_number(tok);
-	tok = skip(tok->next, "]");
+	int sz = const_expr(&tok, tok);
+	tok = skip(tok, "]");
 	ty = type_suffix(rest, tok, ty);
 	return array_of(ty, sz);
 }
@@ -542,8 +543,7 @@ Type *enum_specifier(Token **rest, Token *tok){
 		tok = tok->next;
 
 		if (equal(tok, "=")) {
-			val = get_number(tok->next);
-			tok = tok->next->next;
+			val = const_expr(&tok, tok->next);
 		}
 
 		sc = push_scope(name);
@@ -607,7 +607,7 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "switch" "(" expr ")" stmt
-//      | "case" num ":" stmt
+//      | "case" const-expr ":" stmt
 //      | "default" ":" stmt
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
@@ -665,10 +665,10 @@ Node *stmt(Token **rest, Token *tok) {
 		if (current_switch == NULL) {
 			error_tok(tok, "stray case");
 		}
-		int val = get_number(tok->next);
 
 		Node *node = new_node(ND_CASE, tok);
-		tok = skip(tok->next->next, ":");
+		int val = const_expr(&tok, tok->next);
+		tok = skip(tok, ":");
 		node->label = new_unique_name();
 		node->lhs = stmt(rest, tok);
 		node->val = val;
@@ -852,6 +852,88 @@ Node *expr(Token **rest, Token *tok) {
 
 	*rest = tok;
 	return node;
+}
+
+// Evaluate a given node as a constant expression.
+int32_t eval(Node *node) {
+	add_type(node);
+
+	if (node->kind == ND_ADD) {
+		return eval(node->lhs) + eval(node->rhs);
+	} else if (node->kind == ND_SUB) {
+		return eval(node->lhs) - eval(node->rhs);
+	} else if (node->kind == ND_MUL) {
+		return eval(node->lhs) * eval(node->rhs);
+	} else if (node->kind == ND_DIV) {
+		return eval(node->lhs) / eval(node->rhs);
+	} else if (node->kind == ND_NEG) {
+		return -eval(node->lhs);
+	} else if (node->kind == ND_MOD) {
+		return eval(node->lhs) % eval(node->rhs);
+	} else if (node->kind == ND_BITAND) {
+		return eval(node->lhs) & eval(node->rhs);
+	} else if (node->kind == ND_BITOR) {
+		return eval(node->lhs) | eval(node->rhs);
+	} else if (node->kind == ND_BITXOR) {
+		return eval(node->lhs) ^ eval(node->rhs);
+	} else if (node->kind == ND_SHL) {
+		return eval(node->lhs) << eval(node->rhs);
+	} else if (node->kind == ND_SHR) {
+		return eval(node->lhs) >> eval(node->rhs);
+	} else if (node->kind == ND_EQ) {
+		return eval(node->lhs) == eval(node->rhs);
+	} else if (node->kind == ND_NE) {
+		return eval(node->lhs) != eval(node->rhs);
+	} else if (node->kind == ND_LT) {
+		return eval(node->lhs) < eval(node->rhs);
+	} else if (node->kind == ND_LE) {
+		return eval(node->lhs) <= eval(node->rhs);
+	} else if (node->kind == ND_COND) {
+		if (eval(node->cond)) {
+			return eval(node->then);
+		} else {
+			return eval(node->els);
+		}
+	} else if (node->kind == ND_COMMA) {
+		return eval(node->rhs);
+	} else if (node->kind == ND_NOT) {
+		return !eval(node->lhs);
+	} else if (node->kind == ND_BITNOT) {
+		return ~eval(node->lhs);
+	} else if (node->kind == ND_LOGAND) {
+		if (eval(node->lhs)) {
+			if (eval(node->rhs)) {
+				return TRUE;
+			}
+		}
+		return FALSE;
+	} else if (node->kind == ND_LOGOR) {
+		if (eval(node->lhs)) {
+			return TRUE;
+		}
+		if (eval(node->rhs)) {
+			return TRUE;
+		}
+		return FALSE;
+	} else if (node->kind == ND_CAST) {
+		if (is_integer(node->ty)) {
+			if (node->ty->size == 1) {
+				return eval(node->lhs) & 0xFF;
+			} else if (node->ty->size == 2) {
+				return eval(node->lhs) & 0xFFFF;
+			}
+		}
+		return eval(node->lhs);
+	} else if (node->kind == ND_NUM) {
+		return node->val;
+	}
+
+	error_tok(node->tok, "not a compile time constant");
+}
+
+int32_t const_expr(Token **rest, Token *tok) {
+	Node *node = conditional(rest, tok);
+	return eval(node);
 }
 
 // Convert `A op= B` to `tmp = &A, *tmp = *tmp op B` where tmp is a
