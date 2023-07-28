@@ -193,6 +193,7 @@ struct sObj {
 #define ND_SHL       36 // <<
 #define ND_SHR       37 // >>
 #define ND_COND      38 // ?:
+#define ND_NULL_EXPR 39 // Do nothing
 
 // AST node type
 struct sNode {

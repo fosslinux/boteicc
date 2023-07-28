@@ -52,6 +52,30 @@ struct VarAttr {
 };
 typedef struct VarAttr VarAttr;
 
+// This struct represents a variable initializer.
+struct Initializer {
+	struct Initializer *next;
+	Type *ty;
+	Token *tok;
+
+	// If it is not an aggregate type, and it has an initializer, this is
+	// an initialization expression.
+	Node *expr;
+
+	// If it is an initializer for an aggregate type (array or struct, for eg),
+	// this is the initializers for its children.
+	struct Initializer **children;
+};
+typedef struct Initializer Initializer;
+
+// For local variable initializer.
+struct InitDesg {
+	struct InitDesg *next;
+	int idx;
+	Obj *var;
+};
+typedef struct InitDesg InitDesg;
+
 Scope *scope;
 
 // Points to the function currently being parsed.
@@ -164,6 +188,21 @@ VarScope *push_scope(char *name) {
 	return sc;
 }
 
+Initializer *new_initializer(Type *ty) {
+	Initializer *init = calloc(1, sizeof(Initializer));
+	init->ty = ty;
+
+	if (ty->kind == TY_ARRAY) {
+		init->children = calloc(ty->array_len, sizeof(Initializer*));
+		int i;
+		for (i = 0; i < ty->array_len; i += 1) {
+			init->children[i] = new_initializer(ty->base);
+		}
+	}
+
+	return init;
+}
+
 Obj *new_var(char *name, Type *ty) {
 	Obj *var = calloc(1, sizeof(Obj));
 	var->name = name;
@@ -253,6 +292,7 @@ Type *enum_specifier(Token **rest, Token *tok);
 Type *type_suffix(Token **rest, Token *tok, Type *ty);
 Type *declarator(Token **rest, Token *tok, Type *ty);
 Node *declaration(Token **rest, Token *tok, Type *basety);
+Node *lvar_initializer(Token **rest, Token *tok, Obj *var);
 Node *compound_stmt(Token **rest, Token *tok);
 Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
@@ -568,9 +608,7 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 
 	Type *ty;
 	Obj *var;
-	Node *lhs;
-	Node *rhs;
-	Node *node;
+	Node *expr;
 	while (!equal(tok, ";")) {
 		if (i > 0) {
 			tok = skip(tok, ",");
@@ -587,21 +625,86 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 
 		var = new_lvar(get_ident(ty->name), ty);
 
-		if (!equal(tok, "=")) {
-			continue;
+		if (equal(tok, "=")) {
+			expr = lvar_initializer(&tok, tok->next, var);
+			cur->next = new_unary(ND_EXPR_STMT, expr, tok);
+			cur = cur->next;
 		}
-
-		lhs = new_var_node(var, ty->name);
-		rhs = assign(&tok, tok->next);
-		node = new_binary(ND_ASSIGN, lhs, rhs, tok);
-		cur->next = new_unary(ND_EXPR_STMT, node, tok);
-		cur = cur->next;
 	}
 
-	node = new_node(ND_BLOCK, tok);
+	Node *node = new_node(ND_BLOCK, tok);
 	node->body = head->next;
 	*rest = tok->next;
 	return node;
+}
+
+// initializer = "{" initializer ("," initializer)* "}"
+//             | assign
+void initializer2(Token **rest, Token *tok, Initializer *init) {
+	if (init->ty->kind == TY_ARRAY) {
+		tok = skip(tok, "{");
+
+		int i;
+		for (i = 0; i < init->ty->array_len; i += 1) {
+			if (i > 0) {
+				tok = skip(tok, ",");
+			}
+			initializer2(&tok, tok, init->children[i]);
+		}
+
+		*rest = skip(tok, "}");
+	} else {
+		init->expr = assign(rest, tok);
+	}
+}
+
+Initializer *initializer(Token **rest, Token *tok, Type *ty) {
+	Initializer *init = new_initializer(ty);
+	initializer2(rest, tok, init);
+	return init;
+}
+
+Node *init_desg_expr(InitDesg *desg, Token *tok) {
+	if (desg->var != NULL) {
+		return new_var_node(desg->var, tok);
+	}
+
+	Node *lhs = init_desg_expr(desg->next, tok);
+	Node *rhs = new_num(desg->idx, tok);
+	return new_unary(ND_DEREF, new_add(lhs, rhs, tok), tok);
+}
+
+Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) {
+	if (ty->kind == TY_ARRAY) {
+		Node *node = new_node(ND_NULL_EXPR, tok);
+		int i;
+		InitDesg *desg2;
+		Node *rhs;
+		for (i = 0; i < ty->array_len; i += 1) {
+			desg2 = calloc(1, sizeof(InitDesg));
+			desg2->next = desg;
+			desg2->idx = i;
+			rhs = create_lvar_init(init->children[i], ty->base, desg2, tok);
+			node = new_binary(ND_COMMA, node, rhs, tok);
+		}
+		return node;
+	}
+
+	Node *lhs = init_desg_expr(desg, tok);
+	Node *rhs = init->expr;
+	return new_binary(ND_ASSIGN, lhs, rhs, tok);
+}
+
+// A variable definition with an initializer is a shorthand notation for a
+// variable definition followed by assignments. This function generates
+// assignment expressions for an initializer.
+Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
+	Initializer *init = initializer(rest, tok, var->ty);
+	InitDesg *desg = calloc(1, sizeof(InitDesg));
+	desg->next = NULL;
+	desg->idx = 0;
+	desg->var = var;
+	return create_lvar_init(init, var->ty, desg, tok);
 }
 
 // stmt = "return" expr ";"

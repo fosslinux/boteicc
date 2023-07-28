@@ -185,12 +185,12 @@ void do_cast(Type *from, Type *to) {
 
 // Generate code for a given node.
 void gen_expr(Node *node) {
-	if (node->kind == ND_NUM) {
+	if (node->kind == ND_NULL_EXPR) {
+		return;
+	} else if (node->kind == ND_NUM) {
 		num_postfix("mov_eax, %", node->val);
 		return;
-	}
-
-	if (node->kind == ND_NEG) {
+	} else if (node->kind == ND_NEG) {
 		gen_expr(node->lhs);
 		emit("mov_ebx, %0");
 		emit("sub_ebx,eax");
