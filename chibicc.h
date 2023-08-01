@@ -194,6 +194,7 @@ struct sObj {
 #define ND_SHR       37 // >>
 #define ND_COND      38 // ?:
 #define ND_NULL_EXPR 39 // Do nothing
+#define ND_MEMZERO   40 // Zero-clear a stack variable
 
 // AST node type
 struct sNode {

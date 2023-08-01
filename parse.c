@@ -645,7 +645,7 @@ void initializer2(Token **rest, Token *tok, Initializer *init) {
 		tok = skip(tok, "{");
 
 		int i;
-		for (i = 0; i < init->ty->array_len; i += 1) {
+		for (i = 0; i < init->ty->array_len && !equal(tok, "}"); i += 1) {
 			if (i > 0) {
 				tok = skip(tok, ",");
 			}
@@ -690,9 +690,12 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
 		return node;
 	}
 
+	if (init->expr == NULL) {
+		return new_node(ND_NULL_EXPR, tok);
+	}
+
 	Node *lhs = init_desg_expr(desg, tok);
-	Node *rhs = init->expr;
-	return new_binary(ND_ASSIGN, lhs, rhs, tok);
+	return new_binary(ND_ASSIGN, lhs, init->expr, tok);
 }
 
 // A variable definition with an initializer is a shorthand notation for a
@@ -704,7 +707,16 @@ Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
 	desg->next = NULL;
 	desg->idx = 0;
 	desg->var = var;
-	return create_lvar_init(init, var->ty, desg, tok);
+
+	// If a partial initializer list is given, the standard requires
+	// unspecified elements are set to 0.
+	// The easiest solution is to zero the entire region before initializing
+	// it with user-supplied values.
+	Node *lhs = new_node(ND_MEMZERO, tok);
+	lhs->var = var;
+
+	Node *rhs = create_lvar_init(init, var->ty, desg, tok);
+	return new_binary(ND_COMMA, lhs, rhs, tok);
 }
 
 // stmt = "return" expr ";"

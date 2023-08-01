@@ -64,7 +64,7 @@ int align_to(int n, int align) {
 // TODO: Fix M2-Planet not liking apostrophes in comments..
 // It is an error if the given node does not reside in memory.
 void gen_addr(Node *node) {
-	if (node->kind == ND_VAR) {
+	if (node->kind == ND_VAR || node->kind == ND_MEMZERO) {
 		if (node->var->is_local) {
 			// Local variable
 			str_postfix("lea_eax,[ebp+DWORD] %", int2str(node->var->offset, 10, TRUE));
@@ -226,6 +226,17 @@ void gen_expr(Node *node) {
 	} else if (node->kind == ND_CAST) {
 		gen_expr(node->lhs);
 		do_cast(node->lhs->ty, node->ty);
+		return;
+	} else if (node->kind == ND_MEMZERO) {
+		gen_addr(node);
+		emit("mov_ebx,eax");
+		int i;
+		for (i = 0; i < node->var->ty->size; i += 1) {
+			emit("mov_eax, %0");
+			emit("mov_[ebx],al");
+			emit("mov_eax, %1");
+			emit("add_ebx,eax");
+		}
 		return;
 	} else if (node->kind == ND_COND) {
 		int c = count();
