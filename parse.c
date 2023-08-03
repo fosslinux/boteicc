@@ -292,6 +292,8 @@ Type *enum_specifier(Token **rest, Token *tok);
 Type *type_suffix(Token **rest, Token *tok, Type *ty);
 Type *declarator(Token **rest, Token *tok, Type *ty);
 Node *declaration(Token **rest, Token *tok, Type *basety);
+void initializer2(Token **rest, Token *tok, Initializer *init);
+Initializer *initializer(Token **rest, Token *tok, Type *ty);
 Node *lvar_initializer(Token **rest, Token *tok, Obj *var);
 Node *compound_stmt(Token **rest, Token *tok);
 Node *stmt(Token **rest, Token *tok);
@@ -638,21 +640,57 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 	return node;
 }
 
-// initializer = "{" initializer ("," initializer)* "}"
-//             | assign
-void initializer2(Token **rest, Token *tok, Initializer *init) {
-	if (init->ty->kind == TY_ARRAY) {
-		tok = skip(tok, "{");
+Token *skip_excess_element(Token *tok) {
+	if (equal(tok, "{")) {
+		tok = skip_excess_element(tok->next);
+		return skip(tok, "}");
+	}
 
-		int i;
-		for (i = 0; i < init->ty->array_len && !equal(tok, "}"); i += 1) {
-			if (i > 0) {
-				tok = skip(tok, ",");
-			}
-			initializer2(&tok, tok, init->children[i]);
+	assign(&tok, tok);
+	return tok;
+}
+
+// string-initializer = string-literal
+void string_initializer(Token **rest, Token *tok, Initializer *init) {
+	int len = init->ty->array_len;
+	if (tok->ty->array_len < len) {
+		len = tok->ty->array_len;
+	}
+	int i;
+	Initializer *child;
+	for (i = 0; i < len; i += 1) {
+		child = init->children[i];
+		child->expr = new_num(tok->str[i], tok);
+	}
+	*rest = tok->next;
+}
+
+// array-initializer = "{" initializer ("," initializer)* "}"
+void array_initializer(Token **rest, Token *tok, Initializer *init) {
+	tok = skip(tok, "{");
+
+	int i;
+	for (i = 0; !consume(rest, tok, "}"); i += 1) {
+		if (i > 0) {
+			tok = skip(tok, ",");
 		}
 
-		*rest = skip(tok, "}");
+		if (i < init->ty->array_len) {
+			initializer2(&tok, tok, init->children[i]);
+		} else {
+			tok = skip_excess_element(tok);
+		}
+	}
+}
+
+// initializer = string-initializer | array-initializer | assign
+void initializer2(Token **rest, Token *tok, Initializer *init) {
+	if (init->ty->kind == TY_ARRAY) {
+		if (tok->kind == TK_STR) {
+			string_initializer(rest, tok, init);
+		} else {
+			array_initializer(rest, tok, init);
+		}
 	} else {
 		init->expr = assign(rest, tok);
 	}
