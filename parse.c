@@ -57,6 +57,7 @@ struct Initializer {
 	struct Initializer *next;
 	Type *ty;
 	Token *tok;
+	int is_flexible;
 
 	// If it is not an aggregate type, and it has an initializer, this is
 	// an initialization expression.
@@ -188,15 +189,20 @@ VarScope *push_scope(char *name) {
 	return sc;
 }
 
-Initializer *new_initializer(Type *ty) {
+Initializer *new_initializer(Type *ty, int is_flexible) {
 	Initializer *init = calloc(1, sizeof(Initializer));
 	init->ty = ty;
 
 	if (ty->kind == TY_ARRAY) {
+		if (is_flexible && ty->size < 0) {
+			init->is_flexible = TRUE;
+			return init;
+		}
+
 		init->children = calloc(ty->array_len, sizeof(Initializer*));
 		int i;
 		for (i = 0; i < ty->array_len; i += 1) {
-			init->children[i] = new_initializer(ty->base);
+			init->children[i] = new_initializer(ty->base, FALSE);
 		}
 	}
 
@@ -293,7 +299,7 @@ Type *type_suffix(Token **rest, Token *tok, Type *ty);
 Type *declarator(Token **rest, Token *tok, Type *ty);
 Node *declaration(Token **rest, Token *tok, Type *basety);
 void initializer2(Token **rest, Token *tok, Initializer *init);
-Initializer *initializer(Token **rest, Token *tok, Type *ty);
+Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty);
 Node *lvar_initializer(Token **rest, Token *tok, Obj *var);
 Node *compound_stmt(Token **rest, Token *tok);
 Node *stmt(Token **rest, Token *tok);
@@ -618,9 +624,6 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 		i += 1;
 
 		ty = declarator(&tok, tok, basety);
-		if (ty->size < 0) {
-			error_tok(tok, "variable has incomplete type");
-		}
 		if (ty->kind == TY_VOID) {
 			error_tok(tok, "variable declared void");
 		}
@@ -631,6 +634,13 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 			expr = lvar_initializer(&tok, tok->next, var);
 			cur->next = new_unary(ND_EXPR_STMT, expr, tok);
 			cur = cur->next;
+		}
+
+		if (var->ty->size < 0) {
+			error_tok(ty->name, "variable has incomplete type");
+		}
+		if (var->ty->kind == TY_VOID) {
+			error_tok(ty->name, "variable declared void");
 		}
 	}
 
@@ -652,6 +662,11 @@ Token *skip_excess_element(Token *tok) {
 
 // string-initializer = string-literal
 void string_initializer(Token **rest, Token *tok, Initializer *init) {
+	if (init->is_flexible) {
+		Initializer *new_init = new_initializer(array_of(init->ty->base, tok->ty->array_len), FALSE);
+		memcpy(init, new_init, sizeof(Initializer));
+	}
+
 	int len = init->ty->array_len;
 	if (tok->ty->array_len < len) {
 		len = tok->ty->array_len;
@@ -665,9 +680,28 @@ void string_initializer(Token **rest, Token *tok, Initializer *init) {
 	*rest = tok->next;
 }
 
+int count_array_init_elements(Token *tok, Type *ty) {
+	Initializer *dummy = new_initializer(ty->base, FALSE);
+	int i = 0;
+
+	for (i; !equal(tok, "}"); i += 1) {
+		if (i > 0) {
+			tok = skip(tok, ",");
+		}
+		initializer2(&tok, tok, dummy);
+	}
+	return i;
+}
+
 // array-initializer = "{" initializer ("," initializer)* "}"
 void array_initializer(Token **rest, Token *tok, Initializer *init) {
 	tok = skip(tok, "{");
+
+	if (init->is_flexible) {
+		int len = count_array_init_elements(tok, init->ty);
+		Initializer *new_init = new_initializer(array_of(init->ty->base, len), FALSE);
+		memcpy(init, new_init, sizeof(Initializer));
+	}
 
 	int i;
 	for (i = 0; !consume(rest, tok, "}"); i += 1) {
@@ -696,9 +730,10 @@ void initializer2(Token **rest, Token *tok, Initializer *init) {
 	}
 }
 
-Initializer *initializer(Token **rest, Token *tok, Type *ty) {
-	Initializer *init = new_initializer(ty);
+Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty) {
+	Initializer *init = new_initializer(ty, TRUE);
 	initializer2(rest, tok, init);
+	*new_ty = init->ty;
 	return init;
 }
 
@@ -740,7 +775,10 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
 // variable definition followed by assignments. This function generates
 // assignment expressions for an initializer.
 Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
-	Initializer *init = initializer(rest, tok, var->ty);
+	// XXX What the hell?
+	Type **new_ty = calloc(1, sizeof(Type*));
+	Initializer *init = initializer(rest, tok, var->ty, new_ty);
+	var->ty = *new_ty;
 	InitDesg *desg = calloc(1, sizeof(InitDesg));
 	desg->next = NULL;
 	desg->idx = 0;
