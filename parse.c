@@ -761,6 +761,17 @@ void initializer2(Token **rest, Token *tok, Initializer *init) {
 			array_initializer(rest, tok, init);
 		}
 	} else if (init->ty->kind == TY_STRUCT) {
+		// A struct can be initialized by another struct.
+		// E.g. `struct T x = y;` where y is a struct T.
+		// Handle that case first,
+		if (!equal(tok, "{")) {
+			Node *expr = assign(rest, tok);
+			add_type(expr);
+			if (expr->ty->kind == TY_STRUCT) {
+				init->expr = expr;
+				return;
+			}
+		}
 		struct_initializer(rest, tok, init);
 	} else {
 		init->expr = assign(rest, tok);
@@ -806,7 +817,7 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
 		return node;
 	}
 
-	if (ty->kind == TY_STRUCT) {
+	if (ty->kind == TY_STRUCT && init->expr == NULL) {
 		Node *node = new_node(ND_NULL_EXPR, tok);
 
 		Member *mem;
