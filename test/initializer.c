@@ -33,5 +33,25 @@ int main() {
   _TEST_ASSERT(2, ({ typedef char T[]; T x="x"; T y="foo"; sizeof(x); }));
   _TEST_ASSERT(4, ({ typedef char T[]; T x="x"; T y="foo"; sizeof(y); }));
 
+  _TEST_ASSERT(1, ({ struct {int a; int b; int c;} x={1,2,3}; x.a; }));
+  _TEST_ASSERT(2, ({ struct {int a; int b; int c;} x={1,2,3}; x.b; }));
+  _TEST_ASSERT(3, ({ struct {int a; int b; int c;} x={1,2,3}; x.c; }));
+  _TEST_ASSERT(1, ({ struct {int a; int b; int c;} x={1}; x.a; }));
+  _TEST_ASSERT(0, ({ struct {int a; int b; int c;} x={1}; x.b; }));
+  _TEST_ASSERT(0, ({ struct {int a; int b; int c;} x={1}; x.c; }));
+
+  _TEST_ASSERT(1, ({ struct {int a; int b;} x[2]={{1,2},{3,4}}; x[0].a; }));
+  _TEST_ASSERT(2, ({ struct {int a; int b;} x[2]={{1,2},{3,4}}; x[0].b; }));
+  _TEST_ASSERT(3, ({ struct {int a; int b;} x[2]={{1,2},{3,4}}; x[1].a; }));
+  _TEST_ASSERT(4, ({ struct {int a; int b;} x[2]={{1,2},{3,4}}; x[1].b; }));
+
+  _TEST_ASSERT(0, ({ struct {int a; int b;} x[2]={{1,2}}; x[1].b; }));
+
+  _TEST_ASSERT(0, ({ struct {int a; int b;} x={}; x.a; }));
+  _TEST_ASSERT(0, ({ struct {int a; int b;} x={}; x.b; }));
+
+  _TEST_ASSERT(5, ({ typedef struct {int a,b,c,d,e,f;} T; T x={1,2,3,4,5,6}; T y; y=x; y.e; }));
+  _TEST_ASSERT(2, ({ typedef struct {int a,b;} T; T x={1,2}; T y, z; z=y=x; z.b; }));
+
   return 0;
 }

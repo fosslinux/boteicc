@@ -112,6 +112,7 @@ struct sMember {
 	Type *ty;
 	Token *tok;  // for error message
 	Token *name;
+	int idx;
 	int offset;
 };
 

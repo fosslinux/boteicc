@@ -73,6 +73,7 @@ typedef struct Initializer Initializer;
 struct InitDesg {
 	struct InitDesg *next;
 	int idx;
+	Member *member;
 	Obj *var;
 };
 typedef struct InitDesg InitDesg;
@@ -203,6 +204,19 @@ Initializer *new_initializer(Type *ty, int is_flexible) {
 		int i;
 		for (i = 0; i < ty->array_len; i += 1) {
 			init->children[i] = new_initializer(ty->base, FALSE);
+		}
+	} else if (ty->kind == TY_STRUCT) {
+		// Count the number of struct members.
+		int len = 0;
+		Member *mem;
+		for (mem = ty->members; mem; mem = mem->next) {
+			len += 1;
+		}
+
+		init->children = calloc(len, sizeof(Initializer*));
+
+		for (mem = ty->members; mem; mem = mem->next) {
+			init->children[mem->idx] = new_initializer(mem->ty, FALSE);
 		}
 	}
 
@@ -717,7 +731,28 @@ void array_initializer(Token **rest, Token *tok, Initializer *init) {
 	}
 }
 
-// initializer = string-initializer | array-initializer | assign
+// struct-initializer = "{" initializer ("," initializer)* "}"
+void struct_initializer(Token **rest, Token *tok, Initializer *init) {
+	tok = skip(tok, "{");
+
+	Member *mem = init->ty->members;
+
+	while (!consume(rest, tok, "}")) {
+		if (mem != init->ty->members) {
+			tok = skip(tok, ",");
+		}
+
+		if (mem != NULL) {
+			initializer2(&tok, tok, init->children[mem->idx]);
+			mem = mem->next;
+		} else {
+			tok = skip_excess_element(tok);
+		}
+	}
+}
+
+// initializer = string-initializer | array-initializer
+//             | struct-initializer | assign
 void initializer2(Token **rest, Token *tok, Initializer *init) {
 	if (init->ty->kind == TY_ARRAY) {
 		if (tok->kind == TK_STR) {
@@ -725,6 +760,8 @@ void initializer2(Token **rest, Token *tok, Initializer *init) {
 		} else {
 			array_initializer(rest, tok, init);
 		}
+	} else if (init->ty->kind == TY_STRUCT) {
+		struct_initializer(rest, tok, init);
 	} else {
 		init->expr = assign(rest, tok);
 	}
@@ -740,6 +777,12 @@ Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty) {
 Node *init_desg_expr(InitDesg *desg, Token *tok) {
 	if (desg->var != NULL) {
 		return new_var_node(desg->var, tok);
+	}
+
+	if (desg->member != NULL) {
+		Node *node = new_unary(ND_MEMBER, init_desg_expr(desg->next, tok), tok);
+		node->member = desg->member;
+		return node;
 	}
 
 	Node *lhs = init_desg_expr(desg->next, tok);
@@ -758,6 +801,22 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
 			desg2->next = desg;
 			desg2->idx = i;
 			rhs = create_lvar_init(init->children[i], ty->base, desg2, tok);
+			node = new_binary(ND_COMMA, node, rhs, tok);
+		}
+		return node;
+	}
+
+	if (ty->kind == TY_STRUCT) {
+		Node *node = new_node(ND_NULL_EXPR, tok);
+
+		Member *mem;
+		InitDesg *desg2;
+		Node *rhs;
+		for (mem = ty->members; mem; mem = mem->next) {
+			desg2 = calloc(1, sizeof(InitDesg));
+			desg2->next = desg;
+			desg2->member = mem;
+			rhs = create_lvar_init(init->children[mem->idx], mem->ty, desg2, tok);
 			node = new_binary(ND_COMMA, node, rhs, tok);
 		}
 		return node;
@@ -782,6 +841,7 @@ Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
 	InitDesg *desg = calloc(1, sizeof(InitDesg));
 	desg->next = NULL;
 	desg->idx = 0;
+	desg->member = NULL;
 	desg->var = var;
 
 	// If a partial initializer list is given, the standard requires
@@ -1530,23 +1590,26 @@ Node *unary(Token **rest, Token *tok) {
 void struct_members(Token **rest, Token *tok, Type *ty) {
 	Member *head = calloc(1, sizeof(Member));
 	Member *cur = head;
+	int idx = 0;
 
 	Type *basety;
 	Member *mem;
-	int i;
+	int first;
 	while (!equal(tok, "}")) {
+		first = TRUE;
 		basety = declspec(&tok, tok, NULL);
-		i = 0;
 
-		while(!consume(&tok, tok, ";")) {
-			if (i) {
+		while (!consume(&tok, tok, ";")) {
+			if (!first) {
 				tok = skip(tok, ",");
 			}
-			i += 1;
+			first = FALSE;
 
 			mem = calloc(1, sizeof(Member));
 			mem->ty = declarator(&tok, tok, basety);
 			mem->name = mem->ty->name;
+			mem->idx = idx;
+			idx += 1;
 			cur->next = mem;
 			cur = cur->next;
 		}
