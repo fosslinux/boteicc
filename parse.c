@@ -315,10 +315,12 @@ Node *declaration(Token **rest, Token *tok, Type *basety);
 void initializer2(Token **rest, Token *tok, Initializer *init);
 Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty);
 Node *lvar_initializer(Token **rest, Token *tok, Obj *var);
+void gvar_initializer(Token **rest, Token *tok, Obj *var);
 Node *compound_stmt(Token **rest, Token *tok);
 Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
+int32_t eval(Node *node);
 Node *assign(Token **rest, Token *tok);
 Node *logor(Token **rest, Token *tok);
 int32_t const_expr(Token **rest, Token *tok);
@@ -884,6 +886,52 @@ Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
 
 	Node *rhs = create_lvar_init(init, var->ty, desg, tok);
 	return new_binary(ND_COMMA, lhs, rhs, tok);
+}
+
+void write_gvar_buf(int *buf, uint32_t val, int sz) {
+	// Take bottom sz bytes.
+	if (sz == 1) {
+		*buf = val & 0xff;
+	} else if (sz == 2) {
+		*buf = val & 0xffff;
+	} else if (sz == 4) {
+		*buf = val & 0xffffffff;
+	} else if (sz == 8) {
+		*buf = val;
+	} else {
+		error("internal error in write_gvar_buf, invalid sz");
+	}
+}
+
+void write_gvar_data(Initializer *init, Type *ty, int *buf, int offset) {
+	if (ty->kind == TY_ARRAY) {
+		int sz = ty->base->size;
+		int i;
+		for (i = 0; i < ty->array_len; i += 1) {
+			write_gvar_data(init->children[i], ty->base, buf, offset + sz * i);
+		}
+		return;
+	}
+
+	if (init->expr != NULL) {
+		write_gvar_buf(buf + offset, eval(init->expr), ty->size);
+	}
+}
+
+// Initializers for global variables are evaluated at compile-time and embedded
+// into ELF_data. We serialize Initializers into a flat byte array. It is a
+// compile error if an initializer list contains a non-constant expression.
+void gvar_initializer(Token **rest, Token *tok, Obj *var) {
+	// XXX Again, why?
+	Type **new_ty = calloc(1, sizeof(Type*));
+	Initializer *init = initializer(rest, tok, var->ty, new_ty);
+	var->ty = *new_ty;
+
+	// We should really be callocing size var->ty->size, but M2-Planet does not
+	// comply.
+	int *buf = calloc(1, 8);
+	write_gvar_data(init, var->ty, buf, 0);
+	var->init_data = buf;
 }
 
 // stmt = "return" expr ";"
@@ -2053,6 +2101,7 @@ Token *global_variable(Token *tok, Type *basety) {
 	int first = TRUE;
 
 	Type *ty;
+	Obj *var;
 	while (!consume(&tok, tok, ";")) {
 		if (!first) {
 			tok = skip(tok, ",");
@@ -2060,7 +2109,10 @@ Token *global_variable(Token *tok, Type *basety) {
 		first = FALSE;
 
 		ty = declarator(&tok, tok, basety);
-		new_gvar(get_ident(ty->name), ty);
+		var = new_gvar(get_ident(ty->name), ty);
+		if (equal(tok, "=")) {
+			gvar_initializer(&tok, tok->next, var);
+		}
 	}
 
 	return tok;
