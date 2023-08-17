@@ -2,6 +2,9 @@ char g3 = 3;
 short g4 = 4;
 int g5 = 5;
 long g6 = 6;
+int g9[3] = {0, 1, 2};
+struct {char a; int b;} g11[2] = {{1, 2}, {3, 4}};
+struct {int a[2];} g12[2] = {{{1, 2}}};
 
 int main() {
   _TEST_ASSERT(1, ({ int x[3]={1,2,3}; x[0]; }));
@@ -69,6 +72,20 @@ int main() {
   _TEST_ASSERT(4, g4);
   _TEST_ASSERT(5, g5);
   _TEST_ASSERT(6, g6);
+
+  _TEST_ASSERT(0, g9[0]);
+  _TEST_ASSERT(1, g9[1]);
+  _TEST_ASSERT(2, g9[2]);
+
+  _TEST_ASSERT(1, g11[0].a);
+  _TEST_ASSERT(2, g11[0].b);
+  _TEST_ASSERT(3, g11[1].a);
+  _TEST_ASSERT(4, g11[1].b);
+
+  _TEST_ASSERT(1, g12[0].a[0]);
+  _TEST_ASSERT(2, g12[0].a[1]);
+  _TEST_ASSERT(0, g12[1].a[0]);
+  _TEST_ASSERT(0, g12[1].a[1]);
 
   return 0;
 }

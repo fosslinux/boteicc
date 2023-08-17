@@ -903,12 +903,28 @@ void write_gvar_buf(int *buf, uint32_t val, int sz) {
 	}
 }
 
-void write_gvar_data(Initializer *init, Type *ty, int *buf, int offset) {
+// This takes a char* for buf, despite buf being a int* everywhere else, since
+// we are not writing to it, but simply performing arithmetic on it.
+// And the arithmetic does not work for an int*.
+// (This is due to M2-Planet shenanigans).
+
+// XXX Ignore the GCC errors resulting from this, everything is fine.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+void write_gvar_data(Initializer *init, Type *ty, char *buf, int offset) {
 	if (ty->kind == TY_ARRAY) {
 		int sz = ty->base->size;
 		int i;
 		for (i = 0; i < ty->array_len; i += 1) {
 			write_gvar_data(init->children[i], ty->base, buf, offset + sz * i);
+		}
+		return;
+	}
+
+	if (ty->kind == TY_STRUCT) {
+		Member *mem;
+		for (mem = ty->members; mem != NULL; mem = mem->next) {
+			write_gvar_data(init->children[mem->idx], mem->ty, buf, offset + mem->offset);
 		}
 		return;
 	}
@@ -929,10 +945,14 @@ void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 
 	// We should really be callocing size var->ty->size, but M2-Planet does not
 	// comply.
+	// We should also be using char* but that causes M2-Planet to segfault (why?)
 	int *buf = calloc(1, 8);
 	write_gvar_data(init, var->ty, buf, 0);
 	var->init_data = buf;
 }
+
+// Ok, the cursed pointer int* char* things are finished.
+#pragma GCC diagnostic pop
 
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
