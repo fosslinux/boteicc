@@ -3,6 +3,9 @@
 FILE *output_file;
 Obj *functions;
 
+int reloc_id = 0;
+Relocation *relocations;
+
 // Output functions
 void str_postfix(char *str, char *second) {
 	fputs(str, output_file);
@@ -34,7 +37,7 @@ int count(void) {
 }
 
 void push(char *arg) {
-	if (strcmp(arg, "eax") || strcmp(arg, "ebx") || strcmp(arg, "ebp") || strcmp(arg, "edi")) {
+	if (!strcmp(arg, "eax") || !strcmp(arg, "ebx") || !strcmp(arg, "ebp") || !strcmp(arg, "edi")) {
 		str_postfix("push_", arg);
 	} else {
 		error("invalid push");
@@ -43,7 +46,7 @@ void push(char *arg) {
 }
 
 void pop(char *arg) {
-	if (strcmp(arg, "eax") || strcmp(arg, "ebx") || strcmp(arg, "ebp") || strcmp(arg, "edi")) {
+	if (!strcmp(arg, "eax") || !strcmp(arg, "ebx") || !strcmp(arg, "ebp") || !strcmp(arg, "edi")) {
 		str_postfix("pop_", arg);
 	} else {
 		error("invalid pop");
@@ -518,6 +521,35 @@ void assign_lvar_offsets(Obj *prog) {
 	}
 }
 
+void emit_init_data(Obj *var) {
+	Relocation *rel = var->rel;
+	Relocation *new_rel;
+	int pos = 0;
+	// M1 does not properly support compile-time offsets/pointers, so
+	// we do it at runtime later.
+	while (pos < var->ty->size) {
+		if (rel != NULL) {
+			if (rel->offset == pos) {
+				rel->id = reloc_id;
+				fputc('\n', output_file);
+				num_postfix(":REL_", reloc_id);
+				emit("%0");
+				reloc_id += 1;
+				new_rel = rel->next;
+				rel->next = relocations;
+				relocations = rel;
+				rel = new_rel;
+				pos += 4;
+			}
+		} else {
+			fputc('!', output_file);
+			fputs(uint2str(var->init_data[pos]), output_file);
+			fputc(' ', output_file);
+			pos += 1;
+		}
+	}
+}
+
 void emit_data(Obj *prog) {
 	emit(":ELF_data");
 
@@ -531,11 +563,7 @@ void emit_data(Obj *prog) {
 		str_postfix(":GLOBAL_", var->name);
 		zero_count = var->ty->size;
 		if (var->init_data != NULL) {
-			for (i = 0; i < var->ty->size; i += 1) {
-				fputc('!', output_file);
-				fputs(uint2str(var->init_data[i]), output_file);
-				fputc(' ', output_file);
-			}
+			emit_init_data(var);
 		} else {
 			for (zero_count; zero_count > 0; zero_count -= 1) {
 				fputs("!0 ", output_file);
@@ -551,6 +579,7 @@ void emit_text(Obj *prog) {
 	Obj *fn;
 	int i;
 	Obj *var;
+	Relocation *rel;
 	for (fn = prog; fn; fn = fn->next) {
 		if (!fn->is_function || !fn->is_definition) {
 			continue;
@@ -564,6 +593,26 @@ void emit_text(Obj *prog) {
 		}
 		fputs(fn->name, output_file);
 		fputc('\n', output_file);
+
+		// Global variable addend setup
+		if (!strcmp(fn->name, "main")) {
+			for (rel = relocations; rel != NULL; rel = rel->next) {
+				// TODO I am a bit indecisive about whether to initially store
+				// 0s at REL_blah or GLOBAL_.
+				// TODO simplify
+				str_postfix("mov_eax, &GLOBAL_", rel->label);
+				if (rel->addend > 0) {
+					num_postfix("add_eax, %", rel->addend);
+				} else {
+					emit("mov_ebx,eax");
+					num_postfix("mov_eax, %", -(rel->addend));
+					emit("sub_ebx,eax");
+					emit("mov_eax,ebx");
+				}
+				num_postfix("mov_ebx, &REL_", rel->id);
+				emit("mov_[ebx],eax");
+			}
+		}
 
 		// Prologue
 		emit("push_ebp");

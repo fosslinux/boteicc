@@ -321,6 +321,8 @@ Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 int32_t eval(Node *node);
+int32_t eval2(Node *node, char **label);
+int32_t eval_rval(Node *node, char **label);
 Node *assign(Token **rest, Token *tok);
 Node *logor(Token **rest, Token *tok);
 int32_t const_expr(Token **rest, Token *tok);
@@ -895,8 +897,6 @@ void write_gvar_buf(int *buf, uint32_t val, int sz) {
 	} else if (sz == 2) {
 		*buf = val & 0xffff;
 	} else if (sz == 4) {
-		*buf = val & 0xffffffff;
-	} else if (sz == 8) {
 		*buf = val;
 	} else {
 		error("internal error in write_gvar_buf, invalid sz");
@@ -911,27 +911,47 @@ void write_gvar_buf(int *buf, uint32_t val, int sz) {
 // XXX Ignore the GCC errors resulting from this, everything is fine.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-void write_gvar_data(Initializer *init, Type *ty, char *buf, int offset) {
+Relocation *write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int offset) {
 	if (ty->kind == TY_ARRAY) {
 		int sz = ty->base->size;
 		int i;
 		for (i = 0; i < ty->array_len; i += 1) {
-			write_gvar_data(init->children[i], ty->base, buf, offset + sz * i);
+			cur = write_gvar_data(cur, init->children[i], ty->base, buf, offset + sz * i);
 		}
-		return;
+		return cur;
 	}
 
 	if (ty->kind == TY_STRUCT) {
 		Member *mem;
 		for (mem = ty->members; mem != NULL; mem = mem->next) {
-			write_gvar_data(init->children[mem->idx], mem->ty, buf, offset + mem->offset);
+			cur = write_gvar_data(cur, init->children[mem->idx], mem->ty, buf, offset + mem->offset);
 		}
-		return;
+		return cur;
 	}
 
-	if (init->expr != NULL) {
-		write_gvar_buf(buf + offset, eval(init->expr), ty->size);
+	if (ty->kind == TY_UNION) {
+		// Just the first of the union, like a struct.
+		return write_gvar_data(cur, init->children[0], ty->members->ty, buf, offset);
 	}
+
+	if (init->expr == NULL) {
+		return cur;
+	}
+
+	char *label = NULL;
+	int32_t val = eval2(init->expr, &label);
+
+	if (label == NULL) {
+		write_gvar_buf(buf + offset, val, ty->size);
+		return cur;
+	}
+
+	Relocation *rel = calloc(1, sizeof(Relocation));
+	rel->offset = offset;
+	rel->label = label;
+	rel->addend = val;
+	cur->next = rel;
+	return cur->next;
 }
 
 // Initializers for global variables are evaluated at compile-time and embedded
@@ -943,12 +963,14 @@ void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 	Initializer *init = initializer(rest, tok, var->ty, new_ty);
 	var->ty = *new_ty;
 
+	Relocation *head = calloc(1, sizeof(Relocation));
 	// We should really be callocing size var->ty->size, but M2-Planet does not
 	// comply.
 	// We should also be using char* but that causes M2-Planet to segfault (why?)
 	int *buf = calloc(1, 8);
-	write_gvar_data(init, var->ty, buf, 0);
+	write_gvar_data(head, init, var->ty, buf, 0);
 	var->init_data = buf;
+	var->rel = head->next;
 }
 
 // Ok, the cursed pointer int* char* things are finished.
@@ -1205,13 +1227,21 @@ Node *expr(Token **rest, Token *tok) {
 }
 
 // Evaluate a given node as a constant expression.
+//
+// A constant expression is either a number, or ptr+n where ptr is a pointer
+// to a global variable and n is a number. The pointer form is accepted as
+// an initialization to a global variable.
 int32_t eval(Node *node) {
+	return eval2(node, NULL);
+}
+
+int32_t eval2(Node *node, char **label) {
 	add_type(node);
 
 	if (node->kind == ND_ADD) {
-		return eval(node->lhs) + eval(node->rhs);
+		return eval2(node->lhs, label) + eval(node->rhs);
 	} else if (node->kind == ND_SUB) {
-		return eval(node->lhs) - eval(node->rhs);
+		return eval2(node->lhs, label) - eval(node->rhs);
 	} else if (node->kind == ND_MUL) {
 		return eval(node->lhs) * eval(node->rhs);
 	} else if (node->kind == ND_DIV) {
@@ -1240,12 +1270,12 @@ int32_t eval(Node *node) {
 		return eval(node->lhs) <= eval(node->rhs);
 	} else if (node->kind == ND_COND) {
 		if (eval(node->cond)) {
-			return eval(node->then);
+			return eval2(node->then, label);
 		} else {
-			return eval(node->els);
+			return eval2(node->els, label);
 		}
 	} else if (node->kind == ND_COMMA) {
-		return eval(node->rhs);
+		return eval2(node->rhs, label);
 	} else if (node->kind == ND_NOT) {
 		return !eval(node->lhs);
 	} else if (node->kind == ND_BITNOT) {
@@ -1266,19 +1296,56 @@ int32_t eval(Node *node) {
 		}
 		return FALSE;
 	} else if (node->kind == ND_CAST) {
+		int32_t val = eval2(node->lhs, label);
 		if (is_integer(node->ty)) {
 			if (node->ty->size == 1) {
-				return eval(node->lhs) & 0xFF;
+				return val & 0xff;
 			} else if (node->ty->size == 2) {
-				return eval(node->lhs) & 0xFFFF;
+				return val & 0xffff;
 			}
 		}
-		return eval(node->lhs);
+		return val;
+	} else if (node->kind == ND_ADDR) {
+		return eval_rval(node->lhs, label);
+	} else if (node->kind == ND_MEMBER) {
+		if (label == NULL) {
+			error_tok(node->tok, "not a compile time constant");
+		}
+		if (node->ty->kind != TY_ARRAY) {
+			error_tok(node->tok, "invalid initalizer");
+		}
+		return eval_rval(node->lhs, label) + node->member->offset;
+	} else if (node->kind == ND_VAR) {
+		if (label == NULL) {
+			error_tok(node->tok, "not a compile time constant");
+		}
+		if (node->var->ty->kind != TY_ARRAY && node->var->ty->kind != TY_FUNC) {
+			error_tok(node->tok, "invalid initializer");
+		}
+		// XXX SUS
+		*label = node->var->name;
+		return 0;
 	} else if (node->kind == ND_NUM) {
 		return node->val;
 	}
 
 	error_tok(node->tok, "not a compile time constant");
+}
+
+int32_t eval_rval(Node *node, char **label) {
+	if (node->kind == ND_VAR) {
+		if (node->var->is_local) {
+			error_tok(node->tok, "not a compile-time constant");
+		}
+		*label = node->var->name;
+		return 0;
+	} else if (node->kind == ND_DEREF) {
+		return eval2(node->lhs, label);
+	} else if (node->kind == ND_MEMBER) {
+		return eval_rval(node->lhs, label) + node->member->offset;
+	}
+
+	error_tok(node->tok, "invalid initializer");
 }
 
 int32_t const_expr(Token **rest, Token *tok) {

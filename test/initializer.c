@@ -5,6 +5,22 @@ long g6 = 6;
 int g9[3] = {0, 1, 2};
 struct {char a; int b;} g11[2] = {{1, 2}, {3, 4}};
 struct {int a[2];} g12[2] = {{{1, 2}}};
+union { int a; char b[8]; } g13[2] = {{0x01020304}, {0x05060708}};
+char g17[] = "foobar";
+char g18[10] = "foobar";
+char g19[3] = "foobar";
+char *g20 = g17+0;
+char *g21 = g17+3;
+char *g22 = &g17-3;
+char *g23[] = {g17+0, g17+3, g17-3};
+int g24=3;
+int *g25=&g24;
+int g26[3] = {1, 2, 3};
+int *g27 = g26 + 1;
+int *g28 = &g11[1].a;
+long g29 = (long)(long)g26;
+struct { struct { int a[3]; } a; } g30 = {{{1,2,3}}};
+int *g31=g30.a.a;
 
 int main() {
   _TEST_ASSERT(1, ({ int x[3]={1,2,3}; x[0]; }));
@@ -86,6 +102,47 @@ int main() {
   _TEST_ASSERT(2, g12[0].a[1]);
   _TEST_ASSERT(0, g12[1].a[0]);
   _TEST_ASSERT(0, g12[1].a[1]);
+
+  _TEST_ASSERT(4, g13[0].b[0]);
+  _TEST_ASSERT(3, g13[0].b[1]);
+  _TEST_ASSERT(8, g13[1].b[0]);
+  _TEST_ASSERT(7, g13[1].b[1]);
+
+  _TEST_ASSERT(7, sizeof(g17));
+  _TEST_ASSERT(10, sizeof(g18));
+  _TEST_ASSERT(3, sizeof(g19));
+
+  _TEST_ASSERT('f', g17[0]);
+  _TEST_ASSERT('r', g17[5]);
+  _TEST_ASSERT('f', g18[0]);
+  _TEST_ASSERT('\0', g18[9]);
+  _TEST_ASSERT('f', g19[0]);
+  _TEST_ASSERT('o', g19[1]);
+  _TEST_ASSERT('o', g19[2]);
+
+  _TEST_ASSERT('f', g20[0]);
+  _TEST_ASSERT('r', g20[5]);
+  _TEST_ASSERT('b', g21[0]);
+  _TEST_ASSERT('r', g21[2]);
+  _TEST_ASSERT('f', (g22+3)[0]);
+  _TEST_ASSERT('r', (g22+3)[5]);
+
+  _TEST_ASSERT('f', g23[0][0]);
+  _TEST_ASSERT('r', g23[0][5]);
+  _TEST_ASSERT('b', g23[1][0]);
+  _TEST_ASSERT('r', g23[1][2]);
+  _TEST_ASSERT('f', (g23[2]+3)[0]);
+  _TEST_ASSERT('r', (g23[2]+3)[5]);
+
+  _TEST_ASSERT(3, g24);
+  _TEST_ASSERT(3, *g25);
+  _TEST_ASSERT(2, *g27);
+  _TEST_ASSERT(3, *g28);
+  _TEST_ASSERT(1, *(int *)g29);
+
+  _TEST_ASSERT(1, g31[0]);
+  _TEST_ASSERT(2, g31[1]);
+  _TEST_ASSERT(3, g31[2]);
 
   return 0;
 }

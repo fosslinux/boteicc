@@ -16,6 +16,7 @@ typedef struct sNode Node;
 typedef struct sToken Token;
 typedef struct sObj Obj;
 typedef struct sNode Node;
+typedef struct sRelocation Relocation;
 
 //
 // tokenize.c
@@ -146,12 +147,23 @@ struct sObj {
 
 	// Global variable
 	char *init_data;
+	Relocation *rel;
 
 	// Function
 	Obj *params;
 	Node *body;
 	Obj *locals;
 	int stack_size;
+};
+
+// Global variable can be initialized either by a constant expression or a
+// pointer to another global variable. A Relocation is the latter.
+struct sRelocation {
+	Relocation *next;
+	int offset;
+	char *label;
+	int addend;
+	int id;
 };
 
 // AST node
