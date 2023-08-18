@@ -463,9 +463,14 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 	return ty;
 }
 
-// func-params = (param ("," param)*)? ")"
+// func-params = ("void" | param ("," param)*)? ")"
 // param       = declspec declarator
 Type *func_params(Token **rest, Token *tok, Type *ty) {
+	if (equal(tok, "void") && equal(tok->next, ")")) {
+		*rest = tok->next->next;
+		return func_type(ty);
+	}
+
 	Type *head = calloc(1, sizeof(Type));
 	Type *cur = head;
 
@@ -900,7 +905,7 @@ Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty) {
 		while (mem->next != NULL) {
 			mem = mem->next;
 		}
-		Member *child = init->children[mem->idx];
+		Initializer *child = init->children[mem->idx];
 		mem->ty = child->ty;
 		ty->size += mem->ty->size;
 
