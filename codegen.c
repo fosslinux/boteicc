@@ -6,6 +6,8 @@ Obj *functions;
 int reloc_id = 0;
 Relocation *relocations;
 
+int bytes = 0;
+
 // Output functions
 void str_postfix(char *str, char *second) {
 	fputs(str, output_file);
@@ -540,12 +542,14 @@ void emit_init_data(Obj *var) {
 				relocations = rel;
 				rel = new_rel;
 				pos += 4;
+				bytes += 4;
 			}
 		} else {
 			fputc('!', output_file);
 			fputs(uint2str(var->init_data[pos]), output_file);
 			fputc(' ', output_file);
 			pos += 1;
+			bytes += 1;
 		}
 	}
 }
@@ -556,17 +560,27 @@ void emit_data(Obj *prog) {
 	Obj *var;
 	int zero_count;
 	int i;
+	int align_offset;
 	for (var = prog; var; var = var->next) {
 		if (var->is_function) {
 			continue;
 		}
+
+		// Align to boundary
+		align_offset = align_to(bytes, var->ty->align) - bytes;
+		bytes += align_offset;
+		for (align_offset; align_offset > 0; align_offset -= 1) {
+			fputs("!0 ", output_file);
+		}
+
 		str_postfix(":GLOBAL_", var->name);
-		zero_count = var->ty->size;
 		if (var->init_data != NULL) {
 			emit_init_data(var);
 		} else {
+			zero_count = var->ty->size;
 			for (zero_count; zero_count > 0; zero_count -= 1) {
 				fputs("!0 ", output_file);
+				bytes += 1;
 			}
 		}
 		fputc('\n', output_file);
