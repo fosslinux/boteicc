@@ -567,9 +567,27 @@ Type *typename(Token **rest, Token *tok) {
 	return abstract_declarator(rest, tok, ty);
 }
 
+int expr_is_end(Token *tok) {
+	return equal(tok, "}") || (equal(tok, ",") && equal(tok->next, "}"));
+}
+
+int expr_consume_end(Token **rest, Token *tok) {
+	if (equal(tok, "}")) {
+		*rest = tok->next;
+		return TRUE;
+	}
+
+	if (equal(tok, ",") && equal(tok->next, "}")) {
+		*rest = tok->next->next;
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 // enum-specifier = ident? "{" enum-list? "}"
 //                | ident ("{" enum-list? "}")?
-// enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
+// enum-list      = ident ("=" num)? ("," ident ("=" num)?)* ","?
 Type *enum_specifier(Token **rest, Token *tok){
 	Type *ty = enum_type();
 
@@ -599,7 +617,7 @@ Type *enum_specifier(Token **rest, Token *tok){
 	int val = 0;
 	char *name;
 	VarScope *sc;
-	while (!equal(tok, "}")) {
+	while (!expr_consume_end(rest, tok)) {
 		if (i > 0) {
 			tok = skip(tok, ",");
 		}
@@ -617,8 +635,6 @@ Type *enum_specifier(Token **rest, Token *tok){
 		sc->enum_val = val;
 		val += 1;
 	}
-
-	*rest = tok->next;
 
 	if (tag != NULL) {
 		push_tag_scope(tag, ty);
@@ -702,7 +718,7 @@ int count_array_init_elements(Token *tok, Type *ty) {
 	Initializer *dummy = new_initializer(ty->base, FALSE);
 	int i = 0;
 
-	for (i; !equal(tok, "}"); i += 1) {
+	for (i; !expr_consume_end(&tok, tok); i += 1) {
 		if (i > 0) {
 			tok = skip(tok, ",");
 		}
@@ -711,7 +727,7 @@ int count_array_init_elements(Token *tok, Type *ty) {
 	return i;
 }
 
-// array-initializer1 = "{" initializer ("," initializer)* "}"
+// array-initializer1 = "{" initializer ("," initializer)* ","? "}"
 void array_initializer1(Token **rest, Token *tok, Initializer *init) {
 	tok = skip(tok, "{");
 
@@ -722,7 +738,7 @@ void array_initializer1(Token **rest, Token *tok, Initializer *init) {
 	}
 
 	int i;
-	for (i = 0; !consume(rest, tok, "}"); i += 1) {
+	for (i = 0; !expr_consume_end(rest, tok); i += 1) {
 		if (i > 0) {
 			tok = skip(tok, ",");
 		}
@@ -744,7 +760,7 @@ void array_initializer2(Token **rest, Token *tok, Initializer *init) {
 	}
 
 	int i;
-	for (i = 0; i < init->ty->array_len && !equal(tok, "}"); i += 1) {
+	for (i = 0; i < init->ty->array_len && !expr_is_end(tok); i += 1) {
 		if (i > 0) {
 			tok = skip(tok, ",");
 		}
@@ -755,13 +771,13 @@ void array_initializer2(Token **rest, Token *tok, Initializer *init) {
 	*rest = tok;
 }
 
-// struct-initializer1 = "{" initializer ("," initializer)* "}"
+// struct-initializer1 = "{" initializer ("," initializer)* ","? "}"
 void struct_initializer1(Token **rest, Token *tok, Initializer *init) {
 	tok = skip(tok, "{");
 
 	Member *mem = init->ty->members;
 
-	while (!consume(rest, tok, "}")) {
+	while (!expr_consume_end(rest, tok)) {
 		if (mem != init->ty->members) {
 			tok = skip(tok, ",");
 		}
@@ -780,7 +796,7 @@ void struct_initializer2(Token **rest, Token *tok, Initializer *init) {
 	int first = TRUE;
 
 	Member *mem;
-	for (mem = init->ty->members; mem != NULL && !equal(tok, "}"); mem = mem->next) {
+	for (mem = init->ty->members; mem != NULL && !expr_is_end(tok); mem = mem->next) {
 		if (!first) {
 			tok = skip(tok, ",");
 		}
@@ -796,6 +812,7 @@ void union_initializer(Token **rest, Token *tok, Initializer *init) {
 	// initializing the first union member.
 	if (equal(tok, "{")) {
 		initializer2(&tok, tok->next, init->children[0]);
+		consume(&tok, tok, ",");
 		*rest = skip(tok, "}");
 	} else {
 		initializer2(rest, tok, init->children[0]);

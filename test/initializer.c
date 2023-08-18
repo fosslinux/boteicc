@@ -172,5 +172,10 @@ int main() {
   _TEST_ASSERT('f', g44[0]);
   _TEST_ASSERT('o', g44[2]);
 
+  _TEST_ASSERT(3, ({ int a[]={1,2,3,}; a[2]; }));
+  _TEST_ASSERT(1, ({ struct {int a,b,c;} x={1,2,3,}; x.a; }));
+  _TEST_ASSERT(1, ({ union {int a; char b;} x={1,}; x.a; }));
+  _TEST_ASSERT(2, ({ enum {x,y,z,}; z; }));
+
   return 0;
 }
