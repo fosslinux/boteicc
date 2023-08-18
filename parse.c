@@ -1852,6 +1852,14 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
 		}
 	}
 
+	// If the last element is an array with incomplete type, it is a "flexible
+	// array member", behaving as if it were a zero-sized array.
+	if (cur != head) {
+		if (cur->ty->kind == TY_ARRAY && cur->ty->array_len < 0) {
+			cur->ty = array_of(cur->ty->base, 0);
+		}
+	}
+
 	*rest = tok->next;
 	ty->members = head->next;
 }

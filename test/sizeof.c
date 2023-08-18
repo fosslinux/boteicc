@@ -32,5 +32,7 @@ int main() {
   _TEST_ASSERT(4, sizeof(int(*)[10]));
   _TEST_ASSERT(4, sizeof(int(*)[][10]));
 
+  _TEST_ASSERT(4, sizeof(struct { int x, y[]; }));
+
   return 0;
 }
