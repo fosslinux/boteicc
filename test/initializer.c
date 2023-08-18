@@ -26,6 +26,14 @@ struct {int a[2];} g41[2] = {1, 2, 3, 4};
 char g43[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
 char *g44 = {"foo"};
 
+typedef char T60[];
+T60 g60 = {1, 2, 3};
+T60 g61 = {1, 2, 3, 4, 5, 6};
+
+typedef struct { char a, b[]; } T65;
+T65 g65 = {'f','o','o',0};
+T65 g66 = {'f','o','o','b','a','r',0};
+
 int main() {
   _TEST_ASSERT(1, ({ int x[3]={1,2,3}; x[0]; }));
   _TEST_ASSERT(2, ({ int x[3]={1,2,3}; x[1]; }));
@@ -176,6 +184,16 @@ int main() {
   _TEST_ASSERT(1, ({ struct {int a,b,c;} x={1,2,3,}; x.a; }));
   _TEST_ASSERT(1, ({ union {int a; char b;} x={1,}; x.a; }));
   _TEST_ASSERT(2, ({ enum {x,y,z,}; z; }));
+
+  _TEST_ASSERT(3, sizeof(g60));
+  _TEST_ASSERT(6, sizeof(g61));
+
+  _TEST_ASSERT(4, sizeof(g65));
+  _TEST_ASSERT(7, sizeof(g66));
+  _TEST_ASSERT('o', g65.b[0]);
+  _TEST_ASSERT('o', g65.b[1]);
+  _TEST_ASSERT('o', g66.b[0]);
+  _TEST_ASSERT('r', g66.b[4]);
 
   return 0;
 }

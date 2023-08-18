@@ -69,7 +69,6 @@ Token *tokenize_file(char *filename);
 #define TY_BOOL  10
 #define TY_ENUM  11
 
-// XXX Ensure copy_type is updated when a field is added.
 struct sType {
 	int kind;
 
@@ -93,6 +92,7 @@ struct sType {
 
 	// Struct
 	Member *members;
+	int is_flexible;
 
 	// Function
 	Type *return_ty;

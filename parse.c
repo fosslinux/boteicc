@@ -215,8 +215,16 @@ Initializer *new_initializer(Type *ty, int is_flexible) {
 
 		init->children = calloc(len, sizeof(Initializer*));
 
+		Initializer *child;
 		for (mem = ty->members; mem; mem = mem->next) {
-			init->children[mem->idx] = new_initializer(mem->ty, FALSE);
+			if (is_flexible && ty->is_flexible && mem->next == NULL) {
+				child = calloc(1, sizeof(Initializer));
+				child->ty = mem->ty;
+				child->is_flexible = TRUE;
+				init->children[mem->idx] = child;
+			} else {
+				init->children[mem->idx] = new_initializer(mem->ty, FALSE);
+			}
 		}
 	}
 
@@ -373,7 +381,7 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 	int OTHER  = 1 << 12;
 
 	Type *ty = ty_int; // Default
-	
+
 	Type *ty2;
 	while (is_typename(tok)) {
 		// Handle storage class specifiers.
@@ -863,10 +871,44 @@ void initializer2(Token **rest, Token *tok, Initializer *init) {
 	}
 }
 
+Type *copy_struct_type(Type *ty) {
+	ty = copy_type(ty);
+
+	Member *head = calloc(1, sizeof(Member));
+	Member *cur = head;
+	Member *mem;
+	Member *m;
+	for (mem = ty->members; mem != NULL; mem = mem->next) {
+		m = calloc(1, sizeof(Member));
+		memcpy(m, mem, sizeof(Member));
+		cur->next = m;
+		cur = m;
+	}
+
+	ty->members = head->next;
+	return ty;
+}
+
 Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty) {
 	Initializer *init = new_initializer(ty, TRUE);
 	initializer2(rest, tok, init);
-	*new_ty = init->ty;
+
+	if ((ty->kind == TY_STRUCT || ty->kind == TY_UNION) && ty->is_flexible) {
+		ty = copy_struct_type(ty);
+
+		Member *mem = ty->members;
+		while (mem->next != NULL) {
+			mem = mem->next;
+		}
+		Member *child = init->children[mem->idx];
+		mem->ty = child->ty;
+		ty->size += mem->ty->size;
+
+		*new_ty = ty;
+	} else {
+		*new_ty = init->ty;
+	}
+
 	return init;
 }
 
@@ -1589,7 +1631,7 @@ Node *equality(Token **rest, Token *tok) {
 			node = new_binary(ND_EQ, node, relational(&tok, tok->next), start);
 			continue;
 		}
-		
+
 		if (equal(tok, "!=")) {
 			node = new_binary(ND_NE, node, relational(&tok, tok->next), start);
 			continue;
@@ -1857,6 +1899,7 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
 	if (cur != head) {
 		if (cur->ty->kind == TY_ARRAY && cur->ty->array_len < 0) {
 			cur->ty = array_of(cur->ty->base, 0);
+			ty->is_flexible = TRUE;
 		}
 	}
 
@@ -2058,7 +2101,7 @@ Node *funcall(Token **rest, Token *tok) {
 		if (cur != head) {
 			tok = skip(tok, ",");
 		}
-		
+
 		arg = assign(&tok, tok);
 		add_type(arg);
 
