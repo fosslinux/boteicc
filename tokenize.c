@@ -193,7 +193,9 @@ int is_keyword(Token *tok) {
 			equal(tok, "break") ||
 			equal(tok, "continue") ||
 			equal(tok, "switch") ||
-			equal(tok, "case")) {
+			equal(tok, "case") ||
+			equal(tok, "default") ||
+			equal(tok, "extern")) {
 		return TRUE;
 	}
 	return FALSE;
