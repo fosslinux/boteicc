@@ -835,7 +835,14 @@ void initializer2(Token **rest, Token *tok, Initializer *init) {
 	} else if (init->ty->kind == TY_UNION) {
 		union_initializer(rest, tok, init);
 	} else {
-		init->expr = assign(rest, tok);
+		if (equal(tok, "{")) {
+			// An initializer for a scalar variable can be surrounded by
+			// braces.
+			initializer2(&tok, tok->next, init);
+			*rest = skip(tok, "}");
+		} else {
+			init->expr = assign(rest, tok);
+		}
 	}
 }
 

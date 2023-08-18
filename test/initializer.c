@@ -24,6 +24,7 @@ int *g31=g30.a.a;
 struct {int a[2];} g40[2] = {{1, 2}, 3, 4};
 struct {int a[2];} g41[2] = {1, 2, 3, 4};
 char g43[][4] = {'f', 'o', 'o', 0, 'b', 'a', 'r', 0};
+char *g44 = {"foo"};
 
 int main() {
   _TEST_ASSERT(1, ({ int x[3]={1,2,3}; x[0]; }));
@@ -168,6 +169,8 @@ int main() {
   _TEST_ASSERT('b', g43[1][0]);
   _TEST_ASSERT('a', g43[1][1]);
   _TEST_ASSERT('r', g43[1][2]);
+  _TEST_ASSERT('f', g44[0]);
+  _TEST_ASSERT('o', g44[2]);
 
   return 0;
 }
