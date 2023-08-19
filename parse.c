@@ -50,6 +50,7 @@ struct VarAttr {
 	int is_typedef;
 	int is_static;
 	int is_extern;
+	int align;
 };
 typedef struct VarAttr VarAttr;
 
@@ -236,6 +237,7 @@ Obj *new_var(char *name, Type *ty) {
 	Obj *var = calloc(1, sizeof(Obj));
 	var->name = name;
 	var->ty = ty;
+	var->align = ty->align;
 	VarScope *vs = push_scope(name);
 	vs->var = var;
 	return var;
@@ -319,10 +321,11 @@ int is_typename(Token *tok) {
 }
 
 Type *declspec(Token **rest, Token *tok, VarAttr *attr);
+Type *typename(Token **rest, Token *tok);
 Type *enum_specifier(Token **rest, Token *tok);
 Type *type_suffix(Token **rest, Token *tok, Type *ty);
 Type *declarator(Token **rest, Token *tok, Type *ty);
-Node *declaration(Token **rest, Token *tok, Type *basety);
+Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr);
 void initializer2(Token **rest, Token *tok, Initializer *init);
 Initializer *initializer(Token **rest, Token *tok, Type *ty, Type **new_ty);
 Node *lvar_initializer(Token **rest, Token *tok, Obj *var);
@@ -664,7 +667,7 @@ Type *enum_specifier(Token **rest, Token *tok){
 }
 
 // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-Node *declaration(Token **rest, Token *tok, Type *basety) {
+Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr) {
 	Node *head = calloc(1, sizeof(Node));
 	Node *cur = head;
 	int i = 0;
@@ -684,6 +687,11 @@ Node *declaration(Token **rest, Token *tok, Type *basety) {
 		}
 
 		var = new_lvar(get_ident(ty->name), ty);
+		if (attr != NULL) {
+			if (attr->align != 0) {
+				var->align = attr->align;
+			}
+		}
 
 		if (equal(tok, "=")) {
 			expr = lvar_initializer(&tok, tok->next, var);
@@ -1203,7 +1211,7 @@ Node *stmt(Token **rest, Token *tok) {
 
 		if (is_typename(tok)) {
 			Type *basety = declspec(&tok, tok, NULL);
-			node->init = declaration(&tok, tok, basety);
+			node->init = declaration(&tok, tok, basety, NULL);
 		} else {
 			node->init = expr_stmt(&tok, tok);
 		}
@@ -1321,7 +1329,7 @@ Node *compound_stmt(Token **rest, Token *tok) {
 				continue;
 			}
 
-			cur->next = declaration(&tok, tok, basety);
+			cur->next = declaration(&tok, tok, basety, attr);
 		} else {
 			cur->next = stmt(&tok, tok);
 		}
@@ -1896,10 +1904,12 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
 
 	Type *basety;
 	Member *mem;
+	VarAttr *attr;
 	int first;
 	while (!equal(tok, "}")) {
 		first = TRUE;
-		basety = declspec(&tok, tok, NULL);
+		attr = calloc(1, sizeof(VarAttr));
+		basety = declspec(&tok, tok, attr);
 
 		while (!consume(&tok, tok, ";")) {
 			if (!first) {
@@ -1912,6 +1922,11 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
 			mem->name = mem->ty->name;
 			mem->idx = idx;
 			idx += 1;
+			if (attr->align != 0) {
+				mem->align = attr->align;
+			} else {
+				mem->align = mem->ty->align;
+			}
 			cur->next = mem;
 			cur = cur->next;
 		}
@@ -1988,12 +2003,12 @@ Type *struct_decl(Token **rest, Token *tok) {
 	int offset = 0;
 	Member *mem;
 	for (mem = ty->members; mem; mem = mem->next) {
-		offset = align_to(offset, mem->ty->align);
+		offset = align_to(offset, mem->align);
 		mem->offset = offset;
 		offset += mem->ty->size;
 
-		if (ty->align < mem->ty->align) {
-			ty->align = mem->ty->align;
+		if (ty->align < mem->align) {
+			ty->align = mem->align;
 		}
 	}
 	ty->size = align_to(offset, ty->align);
@@ -2013,8 +2028,8 @@ Type *union_decl(Token **rest, Token *tok) {
 	// We need to compute alignment and size.
 	Member *mem;
 	for (mem = ty->members; mem; mem = mem->next) {
-		if (ty->align < mem->ty->align) {
-			ty->align = mem->ty->align;
+		if (ty->align < mem->align) {
+			ty->align = mem->align;
 		}
 		if (ty->size < mem->ty->size) {
 			ty->size = mem->ty->size;
@@ -2156,6 +2171,7 @@ Node *funcall(Token **rest, Token *tok) {
 //         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
 //         | "_TEST_ASSERT" "(" assign "," assign ")" ";"
+//         | "_Alignof" "(" type-name ")"
 //         | ident func-args?
 //         | str
 //         | num
@@ -2209,6 +2225,13 @@ Node *primary(Token **rest, Token *tok) {
 
 		*rest = tok->next;
 		return node;
+	}
+
+	if (equal(tok, "_Alignof")) {
+		tok = skip(tok->next, "(");
+		Type *ty = typename(&tok, tok);
+		*rest = skip(tok, ")");
+		return new_num(ty->align, tok);
 	}
 
 	if (tok->kind == TK_IDENT) {
@@ -2343,6 +2366,9 @@ Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
 		ty = declarator(&tok, tok, basety);
 		var = new_gvar(get_ident(ty->name), ty);
 		var->is_definition = !attr->is_extern;
+		if (attr->align != 0) {
+			var->align = attr->align;
+		}
 
 		if (equal(tok, "=")) {
 			gvar_initializer(&tok, tok->next, var);

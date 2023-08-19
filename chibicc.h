@@ -114,6 +114,7 @@ struct sMember {
 	Token *tok;  // for error message
 	Token *name;
 	int idx;
+	int align;
 	int offset;
 };
 
@@ -136,6 +137,7 @@ struct sObj {
 	char *name;   // Variable name
 	Type *ty;     // Type
 	int is_local; // local or global/function
+	int align;    // alignment
 
 	// Local variable
 	int offset; // Offset from EBP

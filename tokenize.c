@@ -195,7 +195,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "switch") ||
 			equal(tok, "case") ||
 			equal(tok, "default") ||
-			equal(tok, "extern")) {
+			equal(tok, "extern") ||
+			equal(tok, "_Alignof")) {
 		return TRUE;
 	}
 	return FALSE;
