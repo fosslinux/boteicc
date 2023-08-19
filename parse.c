@@ -356,6 +356,9 @@ Node *postfix(Token **rest, Token *tok);
 Node *unary(Token **rest, Token *tok);
 Node *primary(Token **rest, Token *tok);
 Token *parse_typedef(Token *tok, Type *basety);
+int is_function(Token *tok);
+Token *function(Token *tok, Type *basety, VarAttr *attr);
+Token *global_variable(Token *tok, Type *basety, VarAttr *attr);
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //          | "typedef" | "static" | "extern"
@@ -1305,6 +1308,16 @@ Node *compound_stmt(Token **rest, Token *tok) {
 
 			if (attr->is_typedef) {
 				tok = parse_typedef(tok, basety);
+				continue;
+			}
+
+			if (is_function(tok)) {
+				tok = function(tok, basety, attr);
+				continue;
+			}
+
+			if (attr->is_extern) {
+				tok = global_variable(tok, basety, attr);
 				continue;
 			}
 

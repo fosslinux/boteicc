@@ -1,6 +1,8 @@
 :ELF_data
 :GLOBAL_ext1
 !5 !0 !0 !0
+:GLOBAL_ext3
+!7 !0 !0 !0 
 :GLOBAL__3
 !32 !101 !120 !112 !101 !99 !116 !101 !100 !32 !98 !117 !116 !32 !103 !111 !116 !32 !0 
 :GLOBAL__2
@@ -396,6 +398,42 @@ mov_edx, %1
 mov_eax, %4
 int !0x80
 :BUILTIN_return_fputc
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_ext_fn2
+push_ebp
+mov_ebp,esp
+sub_esp, %16
+lea_eax,[ebp+DWORD] %8
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-4
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %-4
+mov_eax,[eax]
+jmp %BUILTIN_return_ext_fn2
+:BUILTIN_return_ext_fn2
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_ext_fn1
+push_ebp
+mov_ebp,esp
+sub_esp, %16
+lea_eax,[ebp+DWORD] %8
+mov_edx,eax
+lea_eax,[ebp+DWORD] %-4
+mov_ebx,eax
+mov_eax,edx
+mov_eax,[eax]
+mov_[ebx],eax
+lea_eax,[ebp+DWORD] %-4
+mov_eax,[eax]
+jmp %BUILTIN_return_ext_fn1
+:BUILTIN_return_ext_fn1
 mov_esp,ebp
 pop_ebp
 ret
