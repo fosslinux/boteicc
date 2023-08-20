@@ -561,11 +561,6 @@ void emit_data(Obj *prog) {
 			continue;
 		}
 
-		// Align to boundary
-		if (var->align != 0) {
-			num_postfix("<", var->align);
-		}
-
 		fputc('\n', output_file);
 		str_postfix(":GLOBAL_", var->name);
 		if (var->init_data != NULL) {
