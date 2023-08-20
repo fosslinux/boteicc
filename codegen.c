@@ -540,13 +540,13 @@ void emit_init_data(Obj *var) {
 				relocations = rel;
 				rel = new_rel;
 				pos += 4;
+				continue;
 			}
-		} else {
-			fputc('!', output_file);
-			fputs(uint2str(var->init_data[pos]), output_file);
-			fputc(' ', output_file);
-			pos += 1;
 		}
+		fputc('!', output_file);
+		fputs(uint2str(var->init_data[pos]), output_file);
+		fputc(' ', output_file);
+		pos += 1;
 	}
 }
 
