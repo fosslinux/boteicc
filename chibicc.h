@@ -163,7 +163,7 @@ struct sObj {
 struct sRelocation {
 	Relocation *next;
 	int offset;
-	char *label;
+	Obj *var;
 	int addend;
 	int id;
 };

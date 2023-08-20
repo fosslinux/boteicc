@@ -73,7 +73,13 @@ void gen_addr(Node *node) {
 			str_postfix("lea_eax,[ebp+DWORD] %", int2str(node->var->offset, 10, TRUE));
 		} else {
 			// Global variable
-			str_postfix("mov_eax, &GLOBAL_", node->var->name);
+			fputs("mov_eax, &GLOBAL_", output_file);
+			if (node->var->is_static) {
+				fputs(uint2str(infile_id), output_file);
+				fputs("_", output_file);
+			}
+			fputs(node->var->name, output_file);
+			fputc('\n', output_file);
 		}
 	} else if (node->kind == ND_DEREF) {
 		gen_expr(node->lhs);
@@ -564,7 +570,13 @@ void emit_data(Obj *prog) {
 		}
 
 		fputc('\n', output_file);
-		str_postfix(":GLOBAL_", var->name);
+		fputs(":GLOBAL_", output_file);
+		if (var->is_static) {
+			fputs(uint2str(infile_id), output_file);
+			fputs("_", output_file);
+		}
+		fputs(var->name, output_file);
+		fputc('\n', output_file);
 		if (var->init_data != NULL) {
 			emit_init_data(var);
 		} else {
@@ -604,7 +616,13 @@ void emit_text(Obj *prog) {
 				// TODO I am a bit indecisive about whether to initially store
 				// 0s at REL_blah or GLOBAL_.
 				// TODO simplify
-				str_postfix("mov_eax, &GLOBAL_", rel->label);
+				fputs("mov_eax, &GLOBAL_", output_file);
+				if (rel->var->is_static) {
+					fputs(uint2str(infile_id), output_file);
+					fputs("_", output_file);
+				}
+				fputs(rel->var->name, output_file);
+				fputc('\n', output_file);
 				if (rel->addend > 0) {
 					num_postfix("add_eax, %", rel->addend);
 				} else {

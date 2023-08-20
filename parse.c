@@ -254,7 +254,8 @@ Obj *new_lvar(char *name, Type *ty) {
 Obj *new_gvar(char *name, Type *ty) {
 	Obj *var = new_var(name, ty);
 	var->next = globals;
-	var->is_definition;
+	var->is_static = TRUE;
+	var->is_definition = TRUE;
 	globals = var;
 	return var;
 }
@@ -335,8 +336,8 @@ Node *stmt(Token **rest, Token *tok);
 Node *expr_stmt(Token **rest, Token *tok);
 Node *expr(Token **rest, Token *tok);
 int32_t eval(Node *node);
-int32_t eval2(Node *node, char **label);
-int32_t eval_rval(Node *node, char **label);
+int32_t eval2(Node *node, Obj **var);
+int32_t eval_rval(Node *node, Obj **var);
 Node *assign(Token **rest, Token *tok);
 Node *logor(Token **rest, Token *tok);
 int32_t const_expr(Token **rest, Token *tok);
@@ -1086,17 +1087,17 @@ Relocation *write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *
 		return cur;
 	}
 
-	char *label = NULL;
-	int32_t val = eval2(init->expr, &label);
+	Obj *var = NULL;
+	int32_t val = eval2(init->expr, &var);
 
-	if (label == NULL) {
+	if (var == NULL) {
 		write_gvar_buf(buf + offset, val, ty->size);
 		return cur;
 	}
 
 	Relocation *rel = calloc(1, sizeof(Relocation));
 	rel->offset = offset;
-	rel->label = label;
+	rel->var = var;
 	rel->addend = val;
 	cur->next = rel;
 	return cur->next;
@@ -1397,13 +1398,13 @@ int32_t eval(Node *node) {
 	return eval2(node, NULL);
 }
 
-int32_t eval2(Node *node, char **label) {
+int32_t eval2(Node *node, Obj **var) {
 	add_type(node);
 
 	if (node->kind == ND_ADD) {
-		return eval2(node->lhs, label) + eval(node->rhs);
+		return eval2(node->lhs, var) + eval(node->rhs);
 	} else if (node->kind == ND_SUB) {
-		return eval2(node->lhs, label) - eval(node->rhs);
+		return eval2(node->lhs, var) - eval(node->rhs);
 	} else if (node->kind == ND_MUL) {
 		return eval(node->lhs) * eval(node->rhs);
 	} else if (node->kind == ND_DIV) {
@@ -1432,12 +1433,12 @@ int32_t eval2(Node *node, char **label) {
 		return eval(node->lhs) <= eval(node->rhs);
 	} else if (node->kind == ND_COND) {
 		if (eval(node->cond)) {
-			return eval2(node->then, label);
+			return eval2(node->then, var);
 		} else {
-			return eval2(node->els, label);
+			return eval2(node->els, var);
 		}
 	} else if (node->kind == ND_COMMA) {
-		return eval2(node->rhs, label);
+		return eval2(node->rhs, var);
 	} else if (node->kind == ND_NOT) {
 		return !eval(node->lhs);
 	} else if (node->kind == ND_BITNOT) {
@@ -1458,7 +1459,7 @@ int32_t eval2(Node *node, char **label) {
 		}
 		return FALSE;
 	} else if (node->kind == ND_CAST) {
-		int32_t val = eval2(node->lhs, label);
+		int32_t val = eval2(node->lhs, var);
 		if (is_integer(node->ty)) {
 			if (node->ty->size == 1) {
 				return val & 0xff;
@@ -1468,24 +1469,23 @@ int32_t eval2(Node *node, char **label) {
 		}
 		return val;
 	} else if (node->kind == ND_ADDR) {
-		return eval_rval(node->lhs, label);
+		return eval_rval(node->lhs, var);
 	} else if (node->kind == ND_MEMBER) {
-		if (label == NULL) {
+		if (var == NULL) {
 			error_tok(node->tok, "not a compile time constant");
 		}
 		if (node->ty->kind != TY_ARRAY) {
 			error_tok(node->tok, "invalid initalizer");
 		}
-		return eval_rval(node->lhs, label) + node->member->offset;
+		return eval_rval(node->lhs, var) + node->member->offset;
 	} else if (node->kind == ND_VAR) {
-		if (label == NULL) {
+		if (var == NULL) {
 			error_tok(node->tok, "not a compile time constant");
 		}
 		if (node->var->ty->kind != TY_ARRAY && node->var->ty->kind != TY_FUNC) {
 			error_tok(node->tok, "invalid initializer");
 		}
-		// XXX SUS
-		*label = node->var->name;
+		*var = node->var;
 		return 0;
 	} else if (node->kind == ND_NUM) {
 		return node->val;
@@ -1494,17 +1494,17 @@ int32_t eval2(Node *node, char **label) {
 	error_tok(node->tok, "not a compile time constant");
 }
 
-int32_t eval_rval(Node *node, char **label) {
+int32_t eval_rval(Node *node, Obj **var) {
 	if (node->kind == ND_VAR) {
 		if (node->var->is_local) {
 			error_tok(node->tok, "not a compile-time constant");
 		}
-		*label = node->var->name;
+		*var = node->var;
 		return 0;
 	} else if (node->kind == ND_DEREF) {
-		return eval2(node->lhs, label);
+		return eval2(node->lhs, var);
 	} else if (node->kind == ND_MEMBER) {
-		return eval_rval(node->lhs, label) + node->member->offset;
+		return eval_rval(node->lhs, var) + node->member->offset;
 	}
 
 	error_tok(node->tok, "invalid initializer");
@@ -2410,6 +2410,7 @@ Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
 		ty = declarator(&tok, tok, basety);
 		var = new_gvar(get_ident(ty->name), ty);
 		var->is_definition = !attr->is_extern;
+		var->is_static = attr->is_static;
 		if (attr->align != 0) {
 			var->align = attr->align;
 		}
