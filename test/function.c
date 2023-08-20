@@ -53,6 +53,12 @@ static int static_fn(void) { return 3; }
 
 int param_decay(int x[]) { return x[0]; }
 
+int counter() {
+  static int i;
+  static int j = 1+1;
+  return i++ + j++;
+}
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -87,6 +93,10 @@ int main() {
   _TEST_ASSERT(3, static_fn());
 
   _TEST_ASSERT(3, ({ int x[2]; x[0]=3; param_decay(x); }));
+
+  _TEST_ASSERT(2, counter());
+  _TEST_ASSERT(4, counter());
+  _TEST_ASSERT(6, counter());
 
   return 0;
 }

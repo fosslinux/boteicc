@@ -675,6 +675,7 @@ Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr) {
 	Type *ty;
 	Obj *var;
 	Node *expr;
+	VarScope *vs;
 	while (!equal(tok, ";")) {
 		if (i > 0) {
 			tok = skip(tok, ",");
@@ -684,6 +685,19 @@ Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr) {
 		ty = declarator(&tok, tok, basety);
 		if (ty->kind == TY_VOID) {
 			error_tok(tok, "variable declared void");
+		}
+
+		if (attr != NULL) {
+			if (attr->is_static) {
+				// This is a static local variable.
+				var = new_anon_gvar(ty);
+				vs = push_scope(get_ident(ty->name));
+				vs->var = var;
+				if (equal(tok, "=")) {
+					gvar_initializer(&tok, tok->next, var);
+				}
+				continue;
+			}
 		}
 
 		var = new_lvar(get_ident(ty->name), ty);
