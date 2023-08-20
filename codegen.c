@@ -490,7 +490,9 @@ void gen_stmt(Node *node) {
 		gen_stmt(node->lhs);
 		return;
 	} else if (node->kind == ND_RETURN) {
-		gen_expr(node->lhs);
+		if (node->lhs != NULL) {
+			gen_expr(node->lhs);
+		}
 		str_postfix("jmp %BUILTIN_return_", codegening_fn->name);
 		return;
 	} else if (node->kind == ND_EXPR_STMT) {

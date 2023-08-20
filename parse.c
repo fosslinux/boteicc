@@ -1124,7 +1124,7 @@ void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 // Ok, the cursed pointer int* char* things are finished.
 #pragma GCC diagnostic pop
 
-// stmt = "return" expr ";"
+// stmt = "return" expr? ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "switch" "(" expr ")" stmt
 //      | "case" const-expr ":" stmt
@@ -1140,6 +1140,10 @@ void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 Node *stmt(Token **rest, Token *tok) {
 	if (equal(tok, "return")) {
 		Node *node = new_node(ND_RETURN, tok);
+		if (consume(rest, tok->next, ";")) {
+			return node;
+		}
+
 		Node *exp = expr(&tok, tok->next);
 		*rest = skip(tok, ";");
 

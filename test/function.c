@@ -59,6 +59,10 @@ int counter() {
   return i++ + j++;
 }
 
+void ret_none() {
+  return;
+}
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -97,6 +101,8 @@ int main() {
   _TEST_ASSERT(2, counter());
   _TEST_ASSERT(4, counter());
   _TEST_ASSERT(6, counter());
+
+  ret_none();
 
   return 0;
 }
