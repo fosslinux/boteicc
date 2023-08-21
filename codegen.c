@@ -450,26 +450,26 @@ void gen_stmt(Node *node) {
 			gen_expr(node->cond);
 			emit("mov_ebx, %0");
 			emit("cmp");
-			str_postfix("je %GOTO_", node->brk_label);
+			str_postfix("je %LABEL_", node->brk_label);
 		}
 		gen_stmt(node->then);
-		str_postfix(":GOTO_", node->cont_label);
+		str_postfix(":LABEL_", node->cont_label);
 		if (node->inc != NULL) {
 			gen_expr(node->inc);
 		}
 		num_postfix("jmp %FOR_begin_", c);
-		str_postfix(":GOTO_", node->brk_label);
+		str_postfix(":LABEL_", node->brk_label);
 		return;
 	} else if (node->kind == ND_DO) {
 		int c = count();
 		num_postfix(":DO_begin_", c);
 		gen_stmt(node->then);
-		str_postfix(":DO_", node->cont_label);
+		str_postfix(":LABEL_", node->cont_label);
 		gen_expr(node->cond);
 		emit("mov_ebx, %0");
 		emit("cmp");
 		num_postfix("jne %DO_begin_", c);
-		str_postfix(":DO_", node->brk_label);
+		str_postfix(":LABEL_", node->brk_label);
 		return;
 	} else if (node->kind == ND_SWITCH) {
 		gen_expr(node->cond);
@@ -478,19 +478,19 @@ void gen_stmt(Node *node) {
 		for (n = node->case_next; n; n = n->case_next) {
 			num_postfix("mov_ebx, %", n->val);
 			emit("cmp");
-			str_postfix("je %GOTO_", n->label);
+			str_postfix("je %LABEL_", n->label);
 		}
 
 		if (node->default_case) {
-			str_postfix("jmp %GOTO_", node->default_case->label);
+			str_postfix("jmp %LABEL_", node->default_case->label);
 		}
 
-		str_postfix("jmp %GOTO_", node->brk_label);
+		str_postfix("jmp %LABEL_", node->brk_label);
 		gen_stmt(node->then);
-		str_postfix(":GOTO_", node->brk_label);
+		str_postfix(":LABEL_", node->brk_label);
 		return;
 	} else if (node->kind == ND_CASE) {
-		str_postfix(":GOTO_", node->label);
+		str_postfix(":LABEL_", node->label);
 		gen_stmt(node->lhs);
 		return;
 	} else if (node->kind == ND_BLOCK) {
@@ -500,10 +500,10 @@ void gen_stmt(Node *node) {
 		}
 		return;
 	} else if (node->kind == ND_GOTO) {
-		str_postfix("jmp %GOTO_", node->unique_label);
+		str_postfix("jmp %LABEL_", node->unique_label);
 		return;
 	} else if (node->kind == ND_LABEL) {
-		str_postfix(":GOTO_", node->unique_label);
+		str_postfix(":LABEL_", node->unique_label);
 		gen_stmt(node->lhs);
 		return;
 	} else if (node->kind == ND_RETURN) {
