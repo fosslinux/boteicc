@@ -303,6 +303,10 @@ void gen_expr(Node *node) {
 		num_postfix(":LOGOR_end_", c);
 		return;
 	} else if (node->kind == ND_FUNCALL) {
+		// Align the stack frame to 16 bytes.
+		if (depth % 2 != 0) {
+			emit("sub_esp, %8");
+		}
 		// We are using the cdecl calling convention.
 		// Arguments are pushed onto the stack in right to left order.
 		int narg = 0;
@@ -344,6 +348,9 @@ void gen_expr(Node *node) {
 
 		// Stack cleanup
 		num_postfix("add_esp, %", nargs * 4);
+		if (depth % 2 != 0) {
+			emit("add_esp, %8");
+		}
 
 		return;
 	}
