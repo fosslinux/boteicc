@@ -196,7 +196,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "case") ||
 			equal(tok, "default") ||
 			equal(tok, "extern") ||
-			equal(tok, "_Alignof")) {
+			equal(tok, "_Alignof") ||
+			equal(tok, "do")) {
 		return TRUE;
 	}
 	return FALSE;

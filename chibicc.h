@@ -210,6 +210,7 @@ struct sRelocation {
 #define ND_COND      38 // ?:
 #define ND_NULL_EXPR 39 // Do nothing
 #define ND_MEMZERO   40 // Zero-clear a stack variable
+#define ND_DO        41 // "do"
 
 // AST node type
 struct sNode {

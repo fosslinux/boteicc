@@ -460,6 +460,17 @@ void gen_stmt(Node *node) {
 		num_postfix("jmp %FOR_begin_", c);
 		str_postfix(":GOTO_", node->brk_label);
 		return;
+	} else if (node->kind == ND_DO) {
+		int c = count();
+		num_postfix(":DO_begin_", c);
+		gen_stmt(node->then);
+		str_postfix(":DO_", node->cont_label);
+		gen_expr(node->cond);
+		emit("mov_ebx, %0");
+		emit("cmp");
+		num_postfix("jne %DO_begin_", c);
+		str_postfix(":DO_", node->brk_label);
+		return;
 	} else if (node->kind == ND_SWITCH) {
 		gen_expr(node->cond);
 
