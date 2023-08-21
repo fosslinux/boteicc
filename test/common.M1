@@ -437,3 +437,68 @@ jmp %BUILTIN_return_ext_fn1
 mov_esp,ebp
 pop_ebp
 ret
+:ELF_data
+
+:ELF_text
+:FUNCTION_short_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %5
+push_eax
+mov_eax, %16
+push_eax
+mov_eax, %2
+mov_ebx,eax
+pop_eax
+mov_ecx,eax
+mov_eax,ebx
+shl_eax,cl
+pop_ebx
+add_eax,ebx
+jmp %BUILTIN_return_short_fn
+:BUILTIN_return_short_fn
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_char_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %3
+push_eax
+mov_eax, %8
+push_eax
+mov_eax, %2
+mov_ebx,eax
+pop_eax
+mov_ecx,eax
+mov_eax,ebx
+shl_eax,cl
+pop_ebx
+add_eax,ebx
+jmp %BUILTIN_return_char_fn
+:BUILTIN_return_char_fn
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_true_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %513
+jmp %BUILTIN_return_true_fn
+:BUILTIN_return_true_fn
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_false_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %512
+jmp %BUILTIN_return_false_fn
+:BUILTIN_return_false_fn
+mov_esp,ebp
+pop_ebp
+ret

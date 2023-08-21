@@ -63,6 +63,11 @@ void ret_none() {
   return;
 }
 
+_Bool true_fn();
+_Bool false_fn();
+char char_fn();
+short short_fn();
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -103,6 +108,11 @@ int main() {
   _TEST_ASSERT(6, counter());
 
   ret_none();
+
+  _TEST_ASSERT(1, true_fn());
+  _TEST_ASSERT(0, false_fn());
+  _TEST_ASSERT(3, char_fn());
+  _TEST_ASSERT(5, short_fn());
 
   return 0;
 }

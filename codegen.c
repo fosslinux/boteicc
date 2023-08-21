@@ -352,6 +352,16 @@ void gen_expr(Node *node) {
 			emit("add_esp, %8");
 		}
 
+		// There may be garbage in the top part of a return value from a
+		// function with a size less than the word size.
+		if (node->ty->kind == TY_BOOL || node->ty->kind == TY_CHAR) {
+			emit("mov_ebx, %0x000000ff");
+			emit("and_eax,ebx");
+		} else if (node->ty->kind == TY_SHORT) {
+			emit("mov_ebx, %0x0000ffff");
+			emit("and_eax,ebx");
+		}
+
 		return;
 	}
 
