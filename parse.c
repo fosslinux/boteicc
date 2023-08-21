@@ -318,6 +318,7 @@ int is_typename(Token *tok) {
 		equal(tok, "enum") ||
 		equal(tok, "static") ||
 		equal(tok, "extern") ||
+		equal(tok, "signed") ||
 		find_typedef(tok) != NULL;
 }
 
@@ -366,6 +367,7 @@ Token *global_variable(Token *tok, Type *basety, VarAttr *attr);
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //          | "typedef" | "static" | "extern"
+//          | "signed"
 //          | struct-decl | union-decl | typedef-name
 //          | enum-specifier)+
 //
@@ -389,6 +391,7 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 	int INT    = 1 << 8;
 	int LONG   = 1 << 10;
 	int OTHER  = 1 << 12;
+	int SIGNED = 1 << 13;
 
 	Type *ty = ty_int; // Default
 
@@ -448,6 +451,8 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 			counter += INT;
 		} else if (equal(tok, "long")) {
 			counter += LONG;
+		} else if (equal(tok, "signed")) {
+			counter |= SIGNED;
 		} else {
 			error("internal error in declspec, invalid type");
 		}
@@ -456,13 +461,16 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 			ty = ty_void;
 		} else if (counter == BOOL) {
 			ty = ty_bool;
-		} else if (counter == CHAR) {
+		} else if (counter == CHAR || counter == SIGNED + CHAR) {
 			ty = ty_char;
-		} else if (counter == SHORT || counter == SHORT + INT) {
+		} else if (counter == SHORT || counter == SHORT + INT ||
+				counter == SIGNED + SHORT || counter == SIGNED + SHORT + INT) {
 			ty = ty_short;
-		} else if (counter == INT) {
+		} else if (counter == INT || counter == SIGNED ||
+				counter == SIGNED + INT) {
 			ty = ty_int;
-		} else if (counter == LONG || counter == LONG + INT) {
+		} else if (counter == LONG || counter == LONG + INT ||
+				counter == SIGNED + LONG || counter == SIGNED + LONG + INT) {
 			ty = ty_long;
 		} else {
 			error_tok(tok, "invalid type");

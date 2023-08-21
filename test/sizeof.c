@@ -34,5 +34,24 @@ int main() {
 
   _TEST_ASSERT(4, sizeof(struct { int x, y[]; }));
 
+  _TEST_ASSERT(1, sizeof(char));
+  _TEST_ASSERT(1, sizeof(signed char));
+  _TEST_ASSERT(1, sizeof(signed char signed));
+
+  _TEST_ASSERT(2, sizeof(short));
+  _TEST_ASSERT(2, sizeof(int short));
+  _TEST_ASSERT(2, sizeof(short int));
+  _TEST_ASSERT(2, sizeof(signed short));
+  _TEST_ASSERT(2, sizeof(int short signed));
+
+  _TEST_ASSERT(4, sizeof(int));
+  _TEST_ASSERT(4, sizeof(signed int));
+  _TEST_ASSERT(4, sizeof(signed));
+  _TEST_ASSERT(4, sizeof(signed signed));
+
+  _TEST_ASSERT(4, sizeof(long));
+  _TEST_ASSERT(4, sizeof(signed long));
+  _TEST_ASSERT(4, sizeof(signed long int));
+
   return 0;
 }
