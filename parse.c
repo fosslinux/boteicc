@@ -2217,10 +2217,16 @@ Node *funcall(Token **rest, Token *tok) {
 			}
 			arg = new_cast(arg, param_ty);
 			param_ty = param_ty->next;
+		} else {
+			error_tok(tok, "too many arguments");
 		}
 
 		cur->next = arg;
 		cur = cur->next;
+	}
+
+	if (param_ty != NULL) {
+		error_tok(tok, "too few arguments");
 	}
 
 	*rest = skip(tok, ")");
