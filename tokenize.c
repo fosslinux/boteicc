@@ -318,6 +318,7 @@ Token *read_char_literal(char *start) {
 
 	Token *tok = new_token(TK_NUM, start, end + 1);
 	tok->val = c;
+	tok->ty = ty_int;
 	return tok;
 }
 
@@ -325,11 +326,11 @@ Token *read_int_literal(char *start) {
 	int base = 10;
 	char *p = start;
 	char *set = "0123456789";
-	if (!strncmp(stolower(string_slice(p, p+2)), "0x", 2) && (isadigit(*p) || isaalpha(*p))) {
+	if (!strncmp(stolower(string_slice(p, p+2)), "0x", 2) && isaxdigit(p[2])) {
 		p += 2;
 		base = 16;
 		set = "0123456789abcdef";
-	} else if (!strncmp(stolower(string_slice(p, p+2)), "0b", 2) && (isadigit(*p) || isaalpha(*p))) {
+	} else if (!strncmp(stolower(string_slice(p, p+2)), "0b", 2) && (p[2] == '0' || p[2] == '1')) {
 		p += 2;
 		base = 2;
 		set = "01";
@@ -341,7 +342,7 @@ Token *read_int_literal(char *start) {
 	int32_t val = 0;
 	int digit;
 	char *pos;
-	for (p; isadigit(*p) || isaalpha(*p); p += 1) {
+	for (p; isadigit(*p) || isaxdigit(*p); p += 1) {
 		pos = strchr(set, ctolower(*p));
 		if (pos == NULL) {
 			error_at(p, "invalid digit");
@@ -351,8 +352,54 @@ Token *read_int_literal(char *start) {
 		val += digit;
 	}
 
+	// Read U or L suffixes.
+	int l = FALSE;
+	int u = FALSE;
+
+	if (!strncmp(stolower(string_slice(p, p+2)), "lu", 2) ||
+			!strncmp(stolower(string_slice(p, p+2)), "ul", 2)) {
+		p += 2;
+		l = TRUE;
+		u = TRUE;
+	} else if (*p == 'L' || *p == 'l') {
+		p += 1;
+		l = TRUE;
+	} else if (*p == 'U' || *p == 'u') {
+		p += 1;
+		u = TRUE;
+	}
+
+	// Infer type.
+	Type *ty;
+	if (base == 10) {
+		if (l && u) {
+			ty = ty_ulong;
+		} else if (l) {
+			ty = ty_long;
+		} else if (u) {
+			ty = ty_uint;
+		} else {
+			ty = ty_int;
+		}
+	} else {
+		if (l && u) {
+			ty = ty_ulong;
+		} else if (l) {
+			if (val >> 31) {
+				ty = ty_ulong;
+			} else {
+				ty = ty_long;
+			}
+		} else if (val >> 31) {
+			ty = ty_uint;
+		} else {
+			ty = ty_int;
+		}
+	}
+
 	Token *tok = new_token(TK_NUM, start, p);
 	tok->val = val;
+	tok->ty = ty;
 	return tok;
 }
 

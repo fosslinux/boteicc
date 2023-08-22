@@ -25,6 +25,11 @@ int isapunct(char c) {
 	return isagraph(c) && !(isaalpha(c) || isadigit(c));
 }
 
+// isaxdigit
+int isaxdigt(char c) {
+	return ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F');
+}
+
 // ctolower
 char ctolower(char c) {
 	if ('A' <= c && c <= 'Z') {

@@ -37,7 +37,7 @@ struct sToken {
 	int32_t val;        // If kind is TK_NUM, its value
 	char *loc;          // Token location
 	int len;            // Token length
-	Type *ty;           // Used if TK_STR
+	Type *ty;           // Used if TK_NUM or TK_STR
 	char *str;          // String literal contents including terminator
 
 	int line_no;        // Line number

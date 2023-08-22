@@ -2372,6 +2372,7 @@ Node *primary(Token **rest, Token *tok) {
 
 	if (tok->kind == TK_NUM) {
 		Node *node = new_num(tok->val, tok);
+		node->ty = tok->ty;
 		*rest = tok->next;
 		return node;
 	}
