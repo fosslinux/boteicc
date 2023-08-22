@@ -502,3 +502,122 @@ jmp %BUILTIN_return_false_fn
 mov_esp,ebp
 pop_ebp
 ret
+:ELF_data
+
+:ELF_text
+:FUNCTION_sshort_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %7
+push_eax
+mov_eax, %1
+push_eax
+mov_eax, %20
+push_eax
+mov_eax, %2
+mov_ebx,eax
+pop_eax
+mov_ecx,eax
+mov_eax,ebx
+shl_eax,cl
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+jmp %BUILTIN_return_sshort_fn
+:BUILTIN_return_sshort_fn
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_schar_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %4
+push_eax
+mov_eax, %1
+push_eax
+mov_eax, %10
+push_eax
+mov_eax, %2
+mov_ebx,eax
+pop_eax
+mov_ecx,eax
+mov_eax,ebx
+shl_eax,cl
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+jmp %BUILTIN_return_schar_fn
+:BUILTIN_return_schar_fn
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_ushort_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %7
+push_eax
+mov_eax, %1
+push_eax
+mov_eax, %20
+push_eax
+mov_eax, %2
+mov_ebx,eax
+pop_eax
+mov_ecx,eax
+mov_eax,ebx
+shl_eax,cl
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+jmp %BUILTIN_return_ushort_fn
+:BUILTIN_return_ushort_fn
+mov_esp,ebp
+pop_ebp
+ret
+:FUNCTION_uchar_fn
+push_ebp
+mov_ebp,esp
+sub_esp, %0
+mov_eax, %4
+push_eax
+mov_eax, %1
+push_eax
+mov_eax, %10
+push_eax
+mov_eax, %2
+mov_ebx,eax
+pop_eax
+mov_ecx,eax
+mov_eax,ebx
+shl_eax,cl
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+mov_ebx,eax
+pop_eax
+sub_ebx,eax
+mov_eax,ebx
+jmp %BUILTIN_return_uchar_fn
+:BUILTIN_return_uchar_fn
+mov_esp,ebp
+pop_ebp
+ret

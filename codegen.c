@@ -106,10 +106,18 @@ void load(Type *ty) {
 		// pointer to first element of array occurs.
 		return;
 	}
+
+	char *insn;
+	if (ty->is_unsigned) {
+		insn = "movzx";
+	} else {
+		insn = "movsx";
+	}
+
 	if (ty->size == 1) {
-		emit("movsx_eax,BYTE_PTR_[eax]");
+		str_postfix(insn, "_eax,BYTE_PTR_[eax]");
 	} else if (ty->size == 2) {
-		emit("movsx_eax,WORD_PTR_[eax]");
+		str_postfix(insn, "_eax,WORD_PTR_[eax]");
 	} else {
 		emit("mov_eax,[eax]");
 	}
@@ -151,14 +159,29 @@ void store(Type *ty) {
 #define I8  0
 #define I16 1
 #define I32 2
+#define U8  3
+#define U16 4
+#define U32 5
 
 int get_type_id(Type *ty) {
 	if (ty->kind == TY_CHAR) {
-		return I8;
+		if (ty->is_unsigned) {
+			return U8;
+		} else {
+			return I8;
+		}
 	} else if (ty->kind == TY_SHORT) {
-		return I16;
+		if (ty->is_unsigned) {
+			return U16;
+		} else {
+			return I16;
+		}
 	} else {
-		return I32;
+		if (ty->is_unsigned) {
+			return U32;
+		} else {
+			return I32;
+		}
 	}
 }
 
@@ -177,17 +200,30 @@ void do_cast(Type *from, Type *to) {
 	int t1 = get_type_id(from);
 	int t2 = get_type_id(to);
 
-	if (t1 == I16 && t2 == I8 ||
-			t1 == I32 && t2 == I8) {
+	if ((t1 == U8 || t1 == I16 || t1 == U16 || t1 == I32 || t1 == U32)
+			&& t2 == I8) {
 		// TODO simplify
 		push("eax");
 		emit("lea_eax,[esp+DWORD] %0");
 		emit("movsx_eax,BYTE_PTR_[eax]");
 		pop("edi"); // irrelevant, just removes from stack
-	} else if (t1 == I32 && t2 == I16) {
+	} else if ((t1 == I8 || t1 == I16 || t1 == U16 || t1 == I32 || t1 == U32)
+			&& t2 == U8) {
+		push("eax");
+		emit("lea_eax,[esp+DWORD] %0");
+		emit("movzx_eax,BYTE_PTR_[eax]");
+		pop("edi"); // irrelevant, just removes from stack
+	} else if ((t1 == U16 || t1 == I32 || t1 == U32)
+			&& t2 == I16) {
 		push("eax");
 		emit("lea_eax,[esp+DWORD] %0");
 		emit("movsx_eax,WORD_PTR_[eax]");
+		pop("edi"); // irrelevant, just removes from stack
+	} else if ((t1 == I16 || t1 == I32 || t1 == U32)
+			&& t2 == U16) {
+		push("eax");
+		emit("lea_eax,[esp+DWORD] %0");
+		emit("movzx_eax,WORD_PTR_[eax]");
 		pop("edi"); // irrelevant, just removes from stack
 	}
 }
@@ -354,12 +390,28 @@ void gen_expr(Node *node) {
 
 		// There may be garbage in the top part of a return value from a
 		// function with a size less than the word size.
-		if (node->ty->kind == TY_BOOL || node->ty->kind == TY_CHAR) {
-			emit("mov_ebx, %0x000000ff");
-			emit("and_eax,ebx");
-		} else if (node->ty->kind == TY_SHORT) {
-			emit("mov_ebx, %0x0000ffff");
-			emit("and_eax,ebx");
+		// TODO simplify
+		if (node->ty->kind == TY_BOOL ||
+				node->ty->kind == TY_CHAR ||
+				node->ty->kind == TY_SHORT) {
+			push("eax");
+			emit("lea_eax,[esp+DWORD] %0");
+			if (node->ty->kind == TY_BOOL) {
+				emit("movzx_eax,BYTE_PTR_[eax]");
+			} else if (node->ty->kind == TY_CHAR) {
+				if (node->ty->is_unsigned) {
+					emit("movzx_eax,BYTE_PTR_[eax]");
+				} else {
+					emit("movsx_eax,BYTE_PTR_[eax]");
+				}
+			} else if (node->ty->kind == TY_SHORT) {
+				if (node->ty->is_unsigned) {
+					emit("movzx_eax,WORD_PTR_[eax]");
+				} else {
+					emit("movsx_eax,WORD_PTR_[eax]");
+				}
+			}
+			pop("edi");
 		}
 
 		return;
@@ -386,9 +438,13 @@ void gen_expr(Node *node) {
 		return;
 	} else if (node->kind == ND_DIV || node->kind == ND_MOD) {
 		pop("ebx");
-		emit("cdq");
-		emit("idiv_ebx");
-
+		if (node->ty->is_unsigned) {
+			emit("mov_edx, %0");
+			emit("div_ebx");
+		} else {
+			emit("cdq");
+			emit("idiv_ebx");
+		}
 		if (node->kind == ND_MOD) {
 			emit("mov_eax,edx");
 		}
@@ -415,9 +471,17 @@ void gen_expr(Node *node) {
 		} else if (node->kind == ND_NE) {
 			emit("setne_al");
 		} else if (node->kind == ND_LT) {
-			emit("setl_al");
+			if (node->lhs->ty->is_unsigned) {
+				emit("setb_al");
+			} else {
+				emit("setl_al");
+			}
 		} else if (node->kind == ND_LE) {
-			emit("setle_al");
+			if (node->lhs->ty->is_unsigned) {
+				emit("setbe_al");
+			} else {
+				emit("setle_al");
+			}
 		}
 		emit("movzx_eax,al");
 		return;
@@ -435,7 +499,11 @@ void gen_expr(Node *node) {
 		pop("eax");
 		emit("mov_ecx,eax");
 		emit("mov_eax,ebx");
-		emit("sar_eax,cl");
+		if (node->lhs->ty->is_unsigned) {
+			emit("shr_eax,cl");
+		} else {
+			emit("sar_eax,cl");
+		}
 		return;
 	}
 

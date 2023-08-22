@@ -7,6 +7,11 @@ Type *ty_short;
 Type *ty_int;
 Type *ty_long;
 
+Type *ty_uchar;
+Type *ty_ushort;
+Type *ty_uint;
+Type *ty_ulong;
+
 Type *new_type(int kind, int size, int align) {
 	Type *ty = calloc(1, sizeof(Type));
 	ty->kind = kind;
@@ -22,6 +27,15 @@ void initialize_types(void) {
 	ty_short = new_type(TY_SHORT, 2, 2);
 	ty_int = new_type(TY_INT, 4, 4);
 	ty_long = new_type(TY_LONG, 4, 4);
+
+	ty_uchar = copy_type(ty_char);
+	ty_uchar->is_unsigned = TRUE;
+	ty_ushort = copy_type(ty_short);
+	ty_ushort->is_unsigned = TRUE;
+	ty_uint = copy_type(ty_int);
+	ty_uint->is_unsigned = TRUE;
+	ty_ulong = copy_type(ty_long);
+	ty_ulong->is_unsigned = TRUE;
 }
 
 int is_integer(Type *ty) {
@@ -72,7 +86,27 @@ Type *get_common_type(Type *ty1, Type *ty2) {
 	if (ty1->base != NULL) {
 		return pointer_to(ty1->base);
 	}
-	return ty_int;
+
+	// Small integer promotion.
+	if (ty1->size < 4) {
+		ty1 = ty_int;
+	}
+	if (ty2->size < 4) {
+		ty2 = ty_int;
+	}
+
+	if (ty1->kind == TY_LONG && ty2->kind == TY_INT) {
+		return ty1;
+	}
+
+	if (ty2->kind == TY_LONG && ty1->kind == TY_INT) {
+		return ty2;
+	}
+
+	if (ty2->is_unsigned) {
+		return ty2;
+	}
+	return ty1;
 }
 
 // For many binary operators, we implicitly promote operands so that both

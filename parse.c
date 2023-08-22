@@ -319,6 +319,7 @@ int is_typename(Token *tok) {
 		equal(tok, "static") ||
 		equal(tok, "extern") ||
 		equal(tok, "signed") ||
+		equal(tok, "unsigned") ||
 		find_typedef(tok) != NULL;
 }
 
@@ -367,7 +368,7 @@ Token *global_variable(Token *tok, Type *basety, VarAttr *attr);
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //          | "typedef" | "static" | "extern"
-//          | "signed"
+//          | "signed" | "unsigned"
 //          | struct-decl | union-decl | typedef-name
 //          | enum-specifier)+
 //
@@ -384,14 +385,15 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 	// We use a single integer as counters for all typenames.
 	int counter = 0;
 
-	int VOID   = 1 << 0;
-	int BOOL   = 1 << 2;
-	int CHAR   = 1 << 4;
-	int SHORT  = 1 << 6;
-	int INT    = 1 << 8;
-	int LONG   = 1 << 10;
-	int OTHER  = 1 << 12;
-	int SIGNED = 1 << 13;
+	int VOID     = 1 << 0;
+	int BOOL     = 1 << 2;
+	int CHAR     = 1 << 4;
+	int SHORT    = 1 << 6;
+	int INT      = 1 << 8;
+	int LONG     = 1 << 10;
+	int OTHER    = 1 << 12;
+	int SIGNED   = 1 << 13;
+	int UNSIGNED = 1 << 14;
 
 	Type *ty = ty_int; // Default
 
@@ -453,6 +455,8 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 			counter += LONG;
 		} else if (equal(tok, "signed")) {
 			counter |= SIGNED;
+		} else if (equal(tok, "unsigned")) {
+			counter |= UNSIGNED;
 		} else {
 			error("internal error in declspec, invalid type");
 		}
@@ -461,17 +465,34 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 			ty = ty_void;
 		} else if (counter == BOOL) {
 			ty = ty_bool;
-		} else if (counter == CHAR || counter == SIGNED + CHAR) {
+		} else if (counter == CHAR ||
+				counter == SIGNED + CHAR) {
 			ty = ty_char;
-		} else if (counter == SHORT || counter == SHORT + INT ||
-				counter == SIGNED + SHORT || counter == SIGNED + SHORT + INT) {
+		} else if (counter == UNSIGNED + CHAR) {
+			ty = ty_uchar;
+		} else if (counter == SHORT ||
+				counter == SHORT + INT ||
+				counter == SIGNED + SHORT ||
+				counter == SIGNED + SHORT + INT) {
 			ty = ty_short;
-		} else if (counter == INT || counter == SIGNED ||
+		} else if (counter == UNSIGNED + SHORT ||
+				counter == UNSIGNED + SHORT + INT) {
+			ty = ty_ushort;
+		} else if (counter == INT ||
+				counter == SIGNED ||
 				counter == SIGNED + INT) {
 			ty = ty_int;
-		} else if (counter == LONG || counter == LONG + INT ||
-				counter == SIGNED + LONG || counter == SIGNED + LONG + INT) {
+		} else if (counter == UNSIGNED ||
+				counter == UNSIGNED + INT) {
+			ty = ty_uint;
+		} else if (counter == LONG ||
+				counter == LONG + INT ||
+				counter == SIGNED + LONG ||
+				counter == SIGNED + LONG + INT) {
 			ty = ty_long;
+		} else if (counter == UNSIGNED + LONG ||
+				counter == UNSIGNED + LONG + INT) {
+			ty = ty_ulong;
 		} else {
 			error_tok(tok, "invalid type");
 		}

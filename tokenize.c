@@ -198,7 +198,8 @@ int is_keyword(Token *tok) {
 			equal(tok, "extern") ||
 			equal(tok, "_Alignof") ||
 			equal(tok, "do") ||
-			equal(tok, "signed")) {
+			equal(tok, "signed") ||
+			equal(tok, "unsigned")) {
 		return TRUE;
 	}
 	return FALSE;
@@ -337,7 +338,7 @@ Token *read_int_literal(char *start) {
 		set = "01234567";
 	}
 
-	int val = 0;
+	int32_t val = 0;
 	int digit;
 	char *pos;
 	for (p; isadigit(*p) || isaalpha(*p); p += 1) {

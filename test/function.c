@@ -68,6 +68,12 @@ _Bool false_fn();
 char char_fn();
 short short_fn();
 
+unsigned char uchar_fn();
+unsigned short ushort_fn();
+
+char schar_fn();
+short sshort_fn();
+
 int main() {
   _TEST_ASSERT(3, ret3());
   _TEST_ASSERT(8, add2(3, 5));
@@ -113,6 +119,12 @@ int main() {
   _TEST_ASSERT(0, false_fn());
   _TEST_ASSERT(3, char_fn());
   _TEST_ASSERT(5, short_fn());
+
+  _TEST_ASSERT(251, uchar_fn());
+  _TEST_ASSERT(65528, ushort_fn());
+  _TEST_ASSERT(-5, schar_fn());
+  _TEST_ASSERT(-8, sshort_fn());
+
 
   return 0;
 }

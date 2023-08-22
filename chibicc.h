@@ -74,6 +74,7 @@ struct sType {
 
 	int size; // sizeof() value
 	int align; // alignment
+	int is_unsigned; // unsiged or signed
 
 	// Pointer-to or array-of type. Same member used to represent the
 	// pointer/array duality in C.
@@ -106,6 +107,11 @@ extern Type *ty_int;
 extern Type *ty_short;
 extern Type *ty_char;
 extern Type *ty_long;
+
+extern Type *ty_uchar;
+extern Type *ty_ushort;
+extern Type *ty_uint;
+extern Type *ty_ulong;
 
 // Struct member
 struct sMember {
