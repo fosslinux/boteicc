@@ -1863,7 +1863,7 @@ Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
 	// ptr - ptr, which returns how many elements are between the two.
 	if (lhs->ty->base != NULL && rhs->ty->base != NULL) {
 		Node *node = new_binary(ND_SUB, lhs, rhs, tok);
-		node->ty = ty_int;
+		node->ty = ty_long;
 		return new_binary(ND_DIV, node, new_num(lhs->ty->base->size, tok), tok);
 	}
 
@@ -2307,13 +2307,13 @@ Node *primary(Token **rest, Token *tok) {
 	if (equal(tok, "sizeof") && equal(tok->next, "(") && is_typename(tok->next->next)) {
 		Type *ty = typename(&tok, tok->next->next);
 		*rest = skip(tok, ")");
-		return new_num(ty->size, start);
+		return new_ulong(ty->size, start);
 	}
 
 	if (equal(tok, "sizeof")) {
 		Node *node = unary(rest, tok->next);
 		add_type(node);
-		return new_num(node->ty->size, tok);
+		return new_ulong(node->ty->size, tok);
 	}
 
 	if (equal(tok, "_TEST_ASSERT")) {

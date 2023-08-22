@@ -73,5 +73,8 @@ int main() {
   _TEST_ASSERT(4, sizeof(1?(short)2:(char)3));
   _TEST_ASSERT(4, sizeof(1?(long)2:(char)3));
 
+  _TEST_ASSERT(1, sizeof(char) << 31 >> 31);
+  _TEST_ASSERT(1, sizeof(char) << 63 >> 63);
+
   return 0;
 }
