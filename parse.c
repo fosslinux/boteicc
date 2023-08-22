@@ -166,6 +166,13 @@ Node *new_num(int32_t val, Token *tok) {
 	return node;
 }
 
+Node *new_ulong(int32_t val, Token *tok) {
+	Node *node = new_node(ND_NUM, tok);
+	node->val = val;
+	node->ty = ty_ulong;
+	return node;
+}
+
 Node *new_var_node(Obj *var, Token *tok) {
 	Node *node = new_node(ND_VAR, tok);
 	node->var = var;
@@ -2275,6 +2282,7 @@ Node *funcall(Token **rest, Token *tok) {
 //         | "sizeof" unary
 //         | "_TEST_ASSERT" "(" assign "," assign ")" ";"
 //         | "_Alignof" "(" type-name ")"
+//         | "_Alignof" unary
 //         | ident func-args?
 //         | str
 //         | num
@@ -2330,11 +2338,16 @@ Node *primary(Token **rest, Token *tok) {
 		return node;
 	}
 
-	if (equal(tok, "_Alignof")) {
-		tok = skip(tok->next, "(");
-		Type *ty = typename(&tok, tok);
+	if (equal(tok, "_Alignof") && equal(tok->next, "(") && is_typename(tok->next->next)) {
+		Type *ty = typename(&tok, tok->next->next);
 		*rest = skip(tok, ")");
-		return new_num(ty->align, tok);
+		return new_ulong(ty->align, tok);
+	}
+
+	if (equal(tok, "_Alignof")) {
+		Node *node = unary(rest, tok->next);
+		add_type(node);
+		return new_ulong(node->ty->align, tok);
 	}
 
 	if (tok->kind == TK_IDENT) {
