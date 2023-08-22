@@ -126,6 +126,7 @@ int main() {
 
   _TEST_ASSERT(15, (char *)0xffffffffffffffff - (char *)0xfffffffffffffff0);
   _TEST_ASSERT(-15, (char *)0xfffffffffffffff0 - (char *)0xffffffffffffffff);
+  _TEST_ASSERT(1, (void *)0xffffffffffff > (void *)0);
 
   return 0;
 }

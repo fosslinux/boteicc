@@ -57,6 +57,7 @@ Type *copy_type(Type *t) {
 Type *pointer_to(Type *base) {
 	Type *ty = new_type(TY_PTR, 4, 4);
 	ty->base = base;
+	ty->is_unsigned = TRUE;
 	return ty;
 }
 
