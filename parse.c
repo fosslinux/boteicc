@@ -1468,11 +1468,21 @@ int32_t eval2(Node *node, Obj **var) {
 	} else if (node->kind == ND_MUL) {
 		return eval(node->lhs) * eval(node->rhs);
 	} else if (node->kind == ND_DIV) {
-		return eval(node->lhs) / eval(node->rhs);
+		if (node->ty->is_unsigned) {
+			uint32_t lhs = eval(node->lhs);
+			return lhs / eval(node->rhs);
+		} else {
+			return eval(node->lhs) / eval(node->rhs);
+		}
 	} else if (node->kind == ND_NEG) {
 		return -eval(node->lhs);
 	} else if (node->kind == ND_MOD) {
-		return eval(node->lhs) % eval(node->rhs);
+		if (node->ty->is_unsigned) {
+			uint32_t lhs = eval(node->lhs);
+			return lhs % eval(node->rhs);
+		} else {
+			return eval(node->lhs) % eval(node->rhs);
+		}
 	} else if (node->kind == ND_BITAND) {
 		return eval(node->lhs) & eval(node->rhs);
 	} else if (node->kind == ND_BITOR) {
@@ -1482,15 +1492,30 @@ int32_t eval2(Node *node, Obj **var) {
 	} else if (node->kind == ND_SHL) {
 		return eval(node->lhs) << eval(node->rhs);
 	} else if (node->kind == ND_SHR) {
-		return eval(node->lhs) >> eval(node->rhs);
+		if (node->ty->is_unsigned && node->ty->size == 4) {
+			uint32_t lhs = eval(node->lhs);
+			return lhs >> eval(node->rhs);
+		} else {
+			return eval(node->lhs) >> eval(node->rhs);
+		}
 	} else if (node->kind == ND_EQ) {
 		return eval(node->lhs) == eval(node->rhs);
 	} else if (node->kind == ND_NE) {
 		return eval(node->lhs) != eval(node->rhs);
 	} else if (node->kind == ND_LT) {
-		return eval(node->lhs) < eval(node->rhs);
+		if (node->lhs->ty->is_unsigned) {
+			uint32_t lhs = eval(node->lhs);
+			return lhs < eval(node->rhs);
+		} else {
+			return eval(node->lhs) < eval(node->rhs);
+		}
 	} else if (node->kind == ND_LE) {
-		return eval(node->lhs) <= eval(node->rhs);
+		if (node->lhs->ty->is_unsigned) {
+			uint32_t lhs = eval(node->lhs);
+			return lhs < eval(node->rhs);
+		} else {
+			return eval(node->lhs) <= eval(node->rhs);
+		}
 	} else if (node->kind == ND_COND) {
 		if (eval(node->cond)) {
 			return eval2(node->then, var);

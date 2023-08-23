@@ -33,5 +33,12 @@ int main() {
   _TEST_ASSERT(12, ({ char x[(int*)16-1]; sizeof(x); }));
   _TEST_ASSERT(3, ({ char x[(int*)16-(int*)4]; sizeof(x); }));
 
+  _TEST_ASSERT(255, ({ char x[(unsigned char)0xffffffff]; sizeof(x); }));
+  _TEST_ASSERT(0x800f, ({ char x[(unsigned short)0xffff800f]; sizeof(x); }));
+  _TEST_ASSERT(1, ({ char x[(unsigned int)0xfffffffffff>>31]; sizeof(x); }));
+  _TEST_ASSERT(1, ({ char x[(unsigned)1<-1]; sizeof(x); }));
+  _TEST_ASSERT(1, ({ char x[(unsigned)1<=-1]; sizeof(x); }));
+  _TEST_ASSERT(0xff, ({char x[(unsigned char)(-1)]; sizeof(x); }));
+
   return 0;
 }
