@@ -628,12 +628,17 @@ Type *declarator(Token **rest, Token *tok, Type *ty) {
 		return declarator(&tok, start->next, ty);
 	}
 
-	if (tok->kind != TK_IDENT) {
-		error_tok(tok, "expected a variable name");
+	Token *name = NULL;
+	Token *name_pos = tok;
+
+	if (tok->kind == TK_IDENT) {
+		name = tok;
+		tok = tok->next;
 	}
 
-	ty = type_suffix(rest, tok->next, ty);
-	ty->name = tok;
+	ty = type_suffix(rest, tok, ty);
+	ty->name = name;
+	ty->name_pos = name_pos;
 	return ty;
 }
 
@@ -753,6 +758,10 @@ Node *declaration(Token **rest, Token *tok, Type *basety, VarAttr *attr) {
 		ty = declarator(&tok, tok, basety);
 		if (ty->kind == TY_VOID) {
 			error_tok(tok, "variable declared void");
+		}
+
+		if (ty->name == NULL) {
+			error_tok(ty->name_pos, "variable name omitted");
 		}
 
 		if (attr != NULL) {
@@ -2461,6 +2470,9 @@ Token *parse_typedef(Token *tok, Type *basety) {
 		first = FALSE;
 
 		ty = declarator(&tok, tok, basety);
+		if (ty->name == NULL) {
+			error_tok(ty->name_pos, "typedef name omitted");
+		}
 		vs = push_scope(get_ident(ty->name));
 		vs->type_def = ty;
 	}
@@ -2470,6 +2482,9 @@ Token *parse_typedef(Token *tok, Type *basety) {
 void create_param_lvars(Type *param) {
 	if (param != NULL) {
 		create_param_lvars(param->next);
+		if (param->name == NULL) {
+			error_tok(param->name_pos, "parameter name omitted");
+		}
 		new_lvar(get_ident(param->name), param);
 	}
 }
@@ -2501,6 +2516,9 @@ void resolve_goto_labels(void) {
 
 Token *function(Token *tok, Type *basety, VarAttr *attr) {
 	Type *ty = declarator(&tok, tok, basety);
+	if (ty->name == NULL) {
+		error_tok(ty->name_pos, "function name omitted");
+	}
 
 	Obj *fn = new_gvar(get_ident(ty->name), ty);
 	fn->is_function = TRUE;
@@ -2537,6 +2555,10 @@ Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
 		first = FALSE;
 
 		ty = declarator(&tok, tok, basety);
+		if (ty->name == NULL) {
+			error_tok(ty->name_pos, "variable name omitted");
+		}
+
 		var = new_gvar(get_ident(ty->name), ty);
 		var->is_definition = !attr->is_extern;
 		var->is_static = attr->is_static;

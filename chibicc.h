@@ -87,6 +87,7 @@ struct sType {
 
 	// Declaration
 	Token *name;
+	Token *name_pos;
 
 	// Array
 	int array_len;
@@ -142,6 +143,7 @@ struct sObj {
 	Obj *next;
 	char *name;   // Variable name
 	Type *ty;     // Type
+	Token *tok;   // representative token
 	int is_local; // local or global/function
 	int align;    // alignment
 
