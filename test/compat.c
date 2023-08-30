@@ -1,6 +1,6 @@
-_Noreturn noreturn_fn(int restrict x) {
-  0;
-}
+_Noreturn noreturn_fn(int restrict x);
+
+void funcy_type(int arg[restrict static 3]) {}
 
 int main() {
   { volatile x; }
