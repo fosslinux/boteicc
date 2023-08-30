@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "M2libc/bootstrappable.h"
 
 #define FALSE 0
