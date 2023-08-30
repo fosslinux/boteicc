@@ -327,6 +327,14 @@ int is_typename(Token *tok) {
 		equal(tok, "extern") ||
 		equal(tok, "signed") ||
 		equal(tok, "unsigned") ||
+		equal(tok, "const") ||
+		equal(tok, "volatile") ||
+		equal(tok, "auto") ||
+		equal(tok, "register") ||
+		equal(tok, "restrict") ||
+		equal(tok, "__restrict") ||
+		equal(tok, "__restrict__") ||
+		equal(tok, "_Noreturn") ||
 		find_typedef(tok) != NULL;
 }
 
@@ -377,7 +385,9 @@ Token *global_variable(Token *tok, Type *basety, VarAttr *attr);
 //          | "typedef" | "static" | "extern"
 //          | "signed" | "unsigned"
 //          | struct-decl | union-decl | typedef-name
-//          | enum-specifier)+
+//          | enum-specifier
+//          | "const" | "volatile" | "auto" | "register" | "restrict"
+//          | "__restrict" | "__restrict__" | "_Noreturn")+
 //
 // The order of typenames in a type specifier is irrelevant.
 // Eg, `int long static` == `static long int` == `static long`.
@@ -406,6 +416,14 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 
 	Type *ty2;
 	while (is_typename(tok)) {
+		// Recognise but ignore these.
+		if (consume(&tok, tok, "const") || consume(&tok, tok, "volatile") ||
+				consume(&tok, tok, "auto") || consume(&tok, tok, "register") ||
+				consume(&tok, tok, "restrict") || consume(&tok, tok, "__restrict") ||
+				consume(&tok, tok, "__restrict__") || consume(&tok, tok, "_Noreturn")) {
+			continue;
+		}
+
 		// Handle storage class specifiers.
 		if (equal(tok, "typedef") || equal(tok, "static") || equal(tok, "extern")) {
 			if (attr == NULL) {
@@ -579,11 +597,23 @@ Type *type_suffix(Token **rest, Token *tok, Type *ty) {
 	return ty;
 }
 
-// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
-Type *declarator(Token **rest, Token *tok, Type *ty) {
+// pointers = ("*" ("const" | "volatile" | "restrict")*)*
+Type *pointers(Token **rest, Token *tok, Type *ty) {
 	while (consume(&tok, tok, "*")) {
 		ty = pointer_to(ty);
+		while (equal(tok, "const") || equal(tok, "volatile") ||
+				equal(tok, "restrict") || equal(tok, "__restrict") ||
+				equal(tok, "__restrict__")) {
+			tok = tok->next;
+		}
 	}
+	*rest = tok;
+	return ty;
+}
+
+// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
+Type *declarator(Token **rest, Token *tok, Type *ty) {
+	ty = pointers(&tok, tok, ty);
 
 	if (equal(tok, "(")) {
 		Token *start = tok;
@@ -605,10 +635,7 @@ Type *declarator(Token **rest, Token *tok, Type *ty) {
 
 // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
 Type *abstract_declarator(Token **rest, Token *tok, Type *ty) {
-	while (equal(tok, "*")) {
-		ty = pointer_to(ty);
-		tok = tok->next;
-	}
+	ty = pointers(&tok, tok, ty);
 
 	if (equal(tok, "(")) {
 		Token *start = tok;

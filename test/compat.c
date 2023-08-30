@@ -1,0 +1,14 @@
+_Noreturn noreturn_fn(int restrict x) {
+  0;
+}
+
+int main() {
+  { volatile x; }
+  { int volatile x; }
+  { volatile int x; }
+  { volatile int volatile volatile x; }
+  { int volatile * volatile volatile x; }
+  { auto ** restrict __restrict __restrict__ const volatile *x; }
+
+  return 0;
+}

@@ -199,7 +199,15 @@ int is_keyword(Token *tok) {
 			equal(tok, "_Alignof") ||
 			equal(tok, "do") ||
 			equal(tok, "signed") ||
-			equal(tok, "unsigned")) {
+			equal(tok, "unsigned") ||
+			equal(tok, "const") ||
+			equal(tok, "volatile") ||
+			equal(tok, "auto") ||
+			equal(tok, "register") ||
+			equal(tok, "restrict") ||
+			equal(tok, "__restrict") ||
+			equal(tok, "__restrict__") ||
+			equal(tok, "_Noreturn")) {
 		return TRUE;
 	}
 	return FALSE;
